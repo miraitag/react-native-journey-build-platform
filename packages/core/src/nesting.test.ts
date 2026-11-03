@@ -128,4 +128,14 @@ describe('defaultPropsOf', () => {
       on: { type: 'literal', value: false },
     });
   });
+
+  it('puts the name in the first editable text prop, so a new Text is visible', () => {
+    expect(
+      defaultPropsOf({
+        name: 'Text',
+        props: [{ name: 'children', kind: 'node', optional: true }],
+        editableTextProps: ['missing', 'children'],
+      }),
+    ).toEqual({ children: { type: 'literal', value: 'Text' } });
+  });
 });

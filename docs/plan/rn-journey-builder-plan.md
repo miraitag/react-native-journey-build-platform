@@ -676,6 +676,7 @@ Los mappers y la lógica que no se pueda representar visualmente se guardan como
 | F8   | Códecs `emit`, exportación, merge de 3 vías y checks                                                               | F6, F7. Los códecs pueden empezar desde F2. |
 | F9   | Códecs `parse`, importación y reporte de cobertura                                                                 | F8                                          |
 | F10  | Accesibilidad AA, guía de uso y optimización según 5.3                                                             | Todas                                       |
+| F11  | MVP: recorrido completo desde cero con librerías reales (`react-native` incluida), sin pasos manuales en JSON      | F10                                         |
 
 ## 21. Futuro
 

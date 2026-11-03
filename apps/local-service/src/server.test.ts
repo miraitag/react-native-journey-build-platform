@@ -124,6 +124,17 @@ describe('security (ADR 0004)', () => {
     expect(response.statusCode).toBe(400);
     expect(response.json().error.code).toBe('RNJB-405');
   });
+
+  it('refuses to import from git URLs with disallowed schemes', async () => {
+    await configureWorkspace();
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/import/run',
+      headers: authed,
+      payload: { git: { url: 'file:///etc', ref: 'main' }, name: 'X', slug: 'xyz-import' },
+    });
+    expect(response.json().error.code).toBe('RNJB-406');
+  });
 });
 
 describe('workspace', () => {

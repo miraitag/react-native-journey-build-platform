@@ -1,10 +1,19 @@
 import { useEffect } from 'react';
+import { extractFragment } from '@rnjb/core';
 import { useT } from './preferences.ts';
 import { useDialogs } from './dialogs-store.ts';
 import { HOME_TAB, canEdit, useTabs } from './tabs-store.ts';
 import { openFromDisk } from './open-document.ts';
 import { saveAs, saveFile } from './persistence.ts';
 import { trashNode, trashScreen } from './trash.ts';
+import {
+  copySelection,
+  duplicateSelection,
+  moveSelection,
+  pasteClipboard,
+  selectionOf,
+  wrapSelection,
+} from '../editor/node-actions.ts';
 
 const isTyping = (target: EventTarget | null): boolean =>
   target instanceof HTMLElement &&
@@ -72,14 +81,36 @@ export function useGlobalShortcuts(): void {
         active &&
         canEdit(active)
       ) {
-        const { selectedScreenId, selectedNodeId } = active.view;
+        const { selectedScreenId } = active.view;
         const screen = active.document?.screens.find((item) => item.id === selectedScreenId);
         if (!screen) return;
         event.preventDefault();
-        if (selectedNodeId && selectedNodeId !== screen.rootId)
-          void trashNode(active.id, screen.id, selectedNodeId);
-        else void trashScreen(active.id, screen.id);
+        // Only the top-most nodes: a selected child goes with its parent.
+        const nodes = extractFragment(screen, selectionOf(active.view))?.rootIds ?? [];
+        if (nodes.length === 0) void trashScreen(active.id, screen.id);
+        else for (const id of nodes) void trashNode(active.id, screen.id, id);
         return;
+      }
+      // Node shortcuts (§10.3); without a selection the browser keeps its own behaviour.
+      if (active && tabs.activeId !== HOME_TAB) {
+        const handled =
+          mod && !event.altKey && !event.shiftKey && key === 'c'
+            ? copySelection(active.id)
+            : mod && !event.altKey && !event.shiftKey && key === 'v'
+              ? pasteClipboard(active.id)
+              : mod && !event.altKey && !event.shiftKey && key === 'd'
+                ? duplicateSelection(active.id)
+                : mod && event.altKey && event.code === 'KeyG'
+                  ? wrapSelection(active.id)
+                  : event.altKey && !mod && event.key === 'ArrowUp'
+                    ? moveSelection(active.id, -1)
+                    : event.altKey && !mod && event.key === 'ArrowDown'
+                      ? moveSelection(active.id, 1)
+                      : false;
+        if (handled) {
+          event.preventDefault();
+          return;
+        }
       }
       if (event.altKey && !mod && event.code === 'KeyN') {
         event.preventDefault();

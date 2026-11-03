@@ -53,6 +53,19 @@ test('the frame renders a real library component from a compiled bundle', async 
   await expect(page.locator('[data-node-id="hello"]')).toHaveCount(1);
 });
 
+test('react-native primitives render through react-native-web without a bundle', async ({
+  page,
+}) => {
+  await page.goto('/preview.html');
+  const message = scene('Text');
+  const hello = message.scene.nodes.hello as { ref: { package: string }; props: object };
+  hello.ref.package = 'react-native';
+  hello.props = { children: 'primitiva' };
+  await send(page, message);
+  await expect(page.getByText('primitiva')).toBeVisible();
+  await expect(page.locator('[data-node-id="hello"]')).toHaveCount(1);
+});
+
 test('a library that cannot load (missing shim) leaves placeholders', async ({ page }) => {
   await page.goto('/preview.html');
   await send(page, {

@@ -65,7 +65,16 @@ async function readPackage(
   return { name: json.name, version: json.version, json };
 }
 
-/** `source` first (real types, with defaults), then `types`; both must stay inside the library. */
+const isFile = (file: string) =>
+  fs.stat(file).then(
+    (stat) => stat.isFile(),
+    () => false,
+  );
+
+/**
+ * `source` first (real types, with defaults), then `types`; both must stay inside the library.
+ * A folder resolves to its index, as TypeScript does (`react-native` declares `"types": "types"`).
+ */
 async function findEntry(root: string, json: PackageJson): Promise<string> {
   const candidates = [json.source, json.types, json.typings].filter(
     (value): value is string => typeof value === 'string' && value.length > 0,
@@ -73,11 +82,12 @@ async function findEntry(root: string, json: PackageJson): Promise<string> {
   for (const candidate of candidates) {
     const absolute = path.resolve(root, candidate);
     if (!isInside(root, absolute)) throw new RnjbError('RNJB-403', { path: candidate });
-    const exists = await fs.stat(absolute).then(
-      (stat) => stat.isFile(),
-      () => false,
-    );
-    if (exists) return absolute;
+    for (const file of [
+      absolute,
+      ...['index.d.ts', 'index.ts', 'index.tsx'].map((index) => path.join(absolute, index)),
+    ]) {
+      if (await isFile(file)) return file;
+    }
   }
   throw new RnjbError('RNJB-104', { package: String(json.name) });
 }
@@ -120,13 +130,18 @@ function extractComponents(
     return program.isSourceFileDefaultLibrary(file) || file.fileName.includes('/node_modules/');
   };
 
-  for (const exported of checker.getExportsOfModule(moduleSymbol)) {
+  const exports = checker.getExportsOfModule(moduleSymbol);
+  const exportedNames = new Set(exports.map((exported) => exported.name));
+  for (const exported of exports) {
     const symbol =
       exported.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(exported) : exported;
     const name = exported.name;
     if (seen.has(symbol) || !COMPONENT_NAME.test(name) || !(symbol.flags & ts.SymbolFlags.Value)) {
       continue;
     }
+    // `declare class ViewComponent` / `ViewBase` are the scaffolding of `View` in a `.d.ts`.
+    const scaffolding = /^(.+)(?:Base|Component)$/.exec(name)?.[1];
+    if (scaffolding && exportedNames.has(scaffolding)) continue;
     const declaration = symbol.valueDeclaration ?? symbol.declarations?.[0];
     if (!declaration) continue;
     const props = componentProps(checker, symbol, declaration);
@@ -168,12 +183,15 @@ function componentProps(
   declaration: ts.Declaration,
 ): ts.Type | 'none' | undefined {
   const type = checker.getTypeOfSymbolAtLocation(symbol, declaration);
+  // A context is callable as its Provider, but it is not something to place on a screen.
+  if (type.getProperty('Provider') && type.getProperty('Consumer')) return undefined;
   const [signature] = type.getCallSignatures();
   if (signature) {
-    // Plain functions in `.ts` files are utilities, not components.
+    // Outside `.tsx`, only functions that return a React node are components (`PlatformColor`
+    // in a `.d.ts` is a utility).
     const file = declaration.getSourceFile().fileName;
     const returns = checker.typeToString(signature.getReturnType());
-    if (!/\.(tsx|d\.ts)$/.test(file) && !NODE_TYPE.test(returns)) return undefined;
+    if (!file.endsWith('.tsx') && !NODE_TYPE.test(returns)) return undefined;
     const parameter = signature.parameters[0];
     if (!parameter) return 'none';
     return checker.getTypeOfSymbolAtLocation(parameter, declaration);

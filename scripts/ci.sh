@@ -7,7 +7,7 @@ pnpm format:check
 
 # En una rama, solo los paquetes afectados frente a la rama base (y sus dependientes). En la rama
 # base, o si no se puede comparar (clon sin historia), todo. TURBO_SCM_BASE la define el runner.
-BASE="${TURBO_SCM_BASE:-origin/master}"
+BASE="${TURBO_SCM_BASE:-origin/main}"
 AFFECTED=""
 if [ "$(git rev-parse --abbrev-ref HEAD)" != "${BASE#origin/}" ] && git rev-parse -q --verify "$BASE" >/dev/null; then
   AFFECTED="--affected"

@@ -94,10 +94,14 @@ export function defaultPropValue(prop: PropShape, componentName: string): PropVa
   return undefined;
 }
 
-/** Literal values for required props that have no default, so a new component is not empty. */
+/**
+ * Literal values for required props that have no default, so a new component is not empty, and
+ * its name in the first editable text prop, so a new `Text` is visible and editable on the canvas.
+ */
 export function defaultPropsOf(component: {
   name: string;
   props: readonly PropShape[];
+  editableTextProps?: readonly string[] | undefined;
 }): Record<string, PropValue> {
   const result: Record<string, PropValue> = {};
   for (const prop of component.props) {
@@ -105,5 +109,9 @@ export function defaultPropsOf(component: {
     const value = defaultPropValue(prop, component.name);
     if (value) result[prop.name] = value;
   }
+  const text = component.editableTextProps?.find((name) =>
+    component.props.some((prop) => prop.name === name),
+  );
+  if (text && !result[text]) result[text] = { type: 'literal', value: component.name };
   return result;
 }

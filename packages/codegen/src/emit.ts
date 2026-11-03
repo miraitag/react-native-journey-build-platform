@@ -196,6 +196,20 @@ const BINDING_ROOTS = {
   param: 'routeParams',
 } as const;
 
+/**
+ * JSX content for a text `children`, or `undefined` to keep it as an attribute. Plain text only
+ * when JSX would read it back unchanged (no braces, tags, entities, line breaks or edge spaces);
+ * otherwise a string expression.
+ */
+function childContent(value: PropValue, imports: Imports): string | undefined {
+  if (value.type === 'string') return `{${imports.string(value.key)}}`;
+  if (value.type !== 'literal' || typeof value.value !== 'string') return undefined;
+  const text = value.value;
+  return /^[^\s{}<>&]([^{}<>&\n]*[^\s{}<>&])?$/.test(text) && !/\s{2}/.test(text)
+    ? text
+    : `{${q(text)}}`;
+}
+
 function propOf(name: string, value: PropValue, imports: Imports): string {
   switch (value.type) {
     case 'literal':
@@ -253,7 +267,11 @@ function emitNode(
     return '';
   }
   imports.add(pkg, component);
-  const attrs = Object.entries(node.props)
+  // A text `children` without child nodes is written as content: `<Text>Hola</Text>`.
+  const { children: childrenProp, ...otherProps } = node.props;
+  const content =
+    node.children.length === 0 && childrenProp ? childContent(childrenProp, imports) : undefined;
+  const attrs = Object.entries(content === undefined ? node.props : otherProps)
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([name, value]) => propOf(name, value, imports));
   const style = styleOf(node, imports);
@@ -262,6 +280,7 @@ function emitNode(
   const children = node.children
     .map((child) => emitNode(screen, child, imports, styles, missing, depth + 1))
     .filter(Boolean);
+  if (content !== undefined) return `${pad}<${open}>${content}</${component}>`;
   if (children.length === 0) return `${pad}<${open} />`;
   return `${pad}<${open}>\n${children.join('\n')}\n${pad}</${component}>`;
 }

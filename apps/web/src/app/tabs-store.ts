@@ -21,6 +21,8 @@ export type { TabSource };
 export interface ViewState {
   selectedScreenId: string | undefined;
   selectedNodeId: string | undefined;
+  /** Other selected nodes of the same screen (Shift+clic); optional so stored views still load. */
+  extraNodeIds?: string[];
   stateId: string | undefined;
   previewTheme: 'light' | 'dark';
   leftPanel: string;

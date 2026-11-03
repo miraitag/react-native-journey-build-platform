@@ -218,6 +218,8 @@ export const blocksPackSchema = z.strictObject({
       name: z.string().min(1),
       rootId: z.string().min(1),
       nodes: z.record(z.string(), nodeSchema),
+      /** Texts the block's `string` props point to; copied into the journey when inserted. */
+      strings: z.record(z.string(), z.string()).optional(),
       requires: z
         .array(z.strictObject({ package: z.string().min(1), component: z.string().min(1) }))
         .optional(),

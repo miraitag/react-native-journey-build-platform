@@ -27,6 +27,14 @@ export const en: Messages = {
       settings: 'Settings',
     },
     filters: {
+      library: 'Filter by library',
+      anyLibrary: 'All libraries',
+      profile: 'Filter by profile',
+      anyProfile: 'All profiles',
+      date: 'Filter by modification date',
+      anyDate: 'Any date',
+      week: 'Last 7 days',
+      month: 'Last 30 days',
       label: 'Filter by origin',
       all: 'All',
       local: 'Local',
@@ -125,6 +133,7 @@ export const en: Messages = {
       navigator: 'Navigator',
       context: 'Context',
       params: 'Params',
+      props: 'Public props',
     },
     submit: 'Create journey',
     titleFromTemplate: 'Create journey from template',
@@ -154,6 +163,14 @@ export const en: Messages = {
       trash: 'Trash',
     },
     catalog: {
+      reviewTitle: 'Changes in {package}',
+      reviewBody:
+        'The new extraction changes the manifest. What the team curated is kept. Nothing is saved until you accept.',
+      reviewAdded: 'New components',
+      reviewRemoved: 'Removed components',
+      reviewChanged: 'Components with prop changes (+ new, − removed, ~ changed)',
+      reviewAccept: 'Accept changes',
+      reviewReject: 'Reject',
       emptyTitle: 'The catalog is empty',
       emptyBody:
         'Components come from the library packs active in rnjb.team.json. Configure library sources in Settings to extract their manifests.',
@@ -170,7 +187,14 @@ export const en: Messages = {
       noSource: 'No source configured in Settings',
       needsService: 'Needs the local service.',
     },
+    nodes: {
+      copied: 'Nodes copied: {count}',
+    },
     blocks: {
+      name: 'Block name',
+      save: 'Save as block',
+      saved: 'Block “{name}” saved',
+      selectFirst: 'Select one or more nodes (Shift+click) in Layers or on the canvas.',
       emptyTitle: 'No blocks',
       emptyBody:
         'Select several nodes and use “Save as block” to drag them as one unit into other journeys.',
@@ -295,7 +319,6 @@ export const en: Messages = {
       emptyTitle: 'Empty canvas',
       emptyBody: 'This journey has no screens yet.',
       structure: '{count} nodes',
-      previewPending: 'Structure view: the preview needs the library bundles.',
       prototypeOn: 'Prototype',
       prototypeOff: 'Back to editing',
       focus: 'Focus',
@@ -316,6 +339,7 @@ export const en: Messages = {
       navigation: 'Navigation',
       emptyTitle: 'Nothing selected',
       emptyBody: 'Select a node on the canvas or in Layers to see its props.',
+      filterProps: 'Filter props',
       noProps: 'This node has no props set.',
       noLayout: 'No layout or spacing of its own.',
       layoutSection: 'Layout (flexbox)',
@@ -476,6 +500,7 @@ export const en: Messages = {
     trashRetentionHint: 'How long deleted items are kept before purging.',
     libraries: 'Library sources',
     librariesHint: 'Local folder of each team package, where its manifest is extracted from.',
+    librariesUnsourced: 'From the team, without a source:',
     librariesNone: 'No sources configured.',
     libraryPath: 'Path of {package}',
     libraryPackage: 'Package (e.g. @acme/ui)',
@@ -533,6 +558,13 @@ export const en: Messages = {
     undo: 'Undo',
     redo: 'Redo',
     delete: 'Delete the selected node or screen',
+    click: 'click',
+    multiSelect: 'Add or remove a node from the selection',
+    copy: 'Copy the selected nodes',
+    paste: 'Paste inside the selected node',
+    duplicate: 'Duplicate the selected nodes',
+    wrap: 'Wrap the selection in a container',
+    moveNode: 'Move the node up or down',
   },
   narrow: {
     title: 'The window is too narrow to edit',
@@ -643,7 +675,15 @@ export const en: Messages = {
     description:
       'The folder is analysed and a new journey is created. The repository is only read, never modified.',
     folder: 'Library folder',
-    run: 'Import',
+    source: 'Source',
+    sourceFolder: 'Local folder',
+    sourceGit: 'Git URL',
+    url: 'Repository URL (Bitbucket too)',
+    urlFolder: 'Folder inside the repository: {path}',
+    ref: 'Branch, tag or commit',
+    analyse: 'Analyse',
+    create: 'Create journey',
+    useProfile: 'Profile to import with',
     done: '"{name}" imported',
     coverage: '{name}: {percent}% visual nodes, {blocks} code blocks',
     profile: 'Detected profile: {id} ({percent}% match).',
@@ -692,6 +732,7 @@ export const en: Messages = {
     current: 'Current version on disk',
     conflictsPending: '{count} conflicts to resolve',
     write: 'Write {count} files',
+    writeOne: 'Write 1 file',
     done: '{count} files written',
     runChecks: 'Run checks',
     zip: 'Download ZIP',
@@ -815,6 +856,11 @@ export const en: Messages = {
       message: 'The submitted data is not valid.',
       action: 'Review the highlighted fields.',
     },
+    'RNJB-406': {
+      message: 'The repository {url} could not be cloned.',
+      action:
+        'Check the URL and the branch, and that git can reach it with this machine’s credentials (SSH or credential helper).',
+    },
     'RNJB-501': { message: 'No workspace is configured.', action: 'Choose a folder in Settings.' },
     'RNJB-502': {
       message: 'The package.json could not be read.',
@@ -848,6 +894,10 @@ export const en: Messages = {
       message: '“{name}” is not valid or is already used ({kind}).',
       action:
         'Use letters and digits starting with a letter, a valid regular expression, or a value that is not empty or repeated.',
+    },
+    'RNJB-610': {
+      message: 'Only nodes in the same container can be wrapped.',
+      action: 'Select sibling nodes, or move them into the same container first.',
     },
   },
 };

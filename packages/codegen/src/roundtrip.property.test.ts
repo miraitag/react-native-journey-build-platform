@@ -48,7 +48,7 @@ interface Shape {
 }
 
 /** Trees at most `depth` levels deep, so each run stays small (up to 15 nodes). */
-const shapeAt = (depth: number): fc.Arbitrary<Shape> =>
+const rawShapeAt = (depth: number): fc.Arbitrary<Shape> =>
   fc.record({
     component: fc.constantFrom('Button', 'Text', 'Card'),
     props: fc.dictionary(
@@ -77,6 +77,15 @@ const shapeAt = (depth: number): fc.Arbitrary<Shape> =>
     ),
     children: depth > 0 ? fc.array(shapeAt(depth - 1), { maxLength: 2 }) : fc.constant([]),
   });
+/** Leaves may carry text content (`<Text>…</Text>`), any string at all. */
+const shapeAt = (depth: number): fc.Arbitrary<Shape> =>
+  fc
+    .tuple(rawShapeAt(depth), fc.option(fc.string(), { nil: undefined }))
+    .map(([node, text]) =>
+      text !== undefined && node.children.length === 0
+        ? { ...node, props: { ...node.props, children: { type: 'literal', value: text } } }
+        : node,
+    );
 const shape = shapeAt(3);
 
 const base = applyBasicJourney(

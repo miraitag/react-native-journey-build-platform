@@ -26,7 +26,8 @@ interface PreviewFrameProps {
   theme: 'light' | 'dark';
   stateId: string | undefined;
   selectedNodeId: string | undefined;
-  onSelectNode: (nodeId: string) => void;
+  extraNodeIds?: readonly string[] | undefined;
+  onSelectNode: (nodeId: string, additive?: boolean) => void;
   onInsertComponent: ((item: DraggedComponent, targetNodeId?: string) => void) | undefined;
   canInsertComponent: ((item: DraggedComponent, targetNodeId?: string) => boolean) | undefined;
   /** Document texts, shown in the preview. */
@@ -54,6 +55,7 @@ export function PreviewFrame({
   theme,
   stateId,
   selectedNodeId,
+  extraNodeIds,
   onSelectNode,
   onInsertComponent,
   canInsertComponent,
@@ -116,7 +118,8 @@ export function PreviewFrame({
   useEffect(() => {
     if (!ready) return;
     for (const pkg of packages) {
-      if (requested.current.has(pkg) || !sources?.[pkg]) continue;
+      // `react-native` renders through react-native-web inside the frame; it has no bundle.
+      if (pkg === 'react-native' || requested.current.has(pkg) || !sources?.[pkg]) continue;
       requested.current.add(pkg);
       localService
         .libraryBundle(pkg)
@@ -224,7 +227,7 @@ export function PreviewFrame({
                 {...dropProps(id)}
                 onClick={(event) => {
                   event.stopPropagation();
-                  onSelectNode(id);
+                  onSelectNode(id, event.shiftKey);
                 }}
                 onDoubleClick={(event) => {
                   const target = onEditText ? textPropOf(screen.nodes[id], strings) : undefined;
@@ -239,7 +242,7 @@ export function PreviewFrame({
                     ? hover.valid
                       ? 'shadow-[0_0_0_calc(2px*var(--inv-zoom))_var(--selection-color)]'
                       : 'shadow-[0_0_0_calc(2px*var(--inv-zoom))_var(--drop-invalid)]'
-                    : id === selectedNodeId
+                    : id === selectedNodeId || extraNodeIds?.includes(id)
                       ? 'shadow-[0_0_0_calc(var(--selection-width)*var(--inv-zoom))_var(--selection-color)]'
                       : split.has(id)
                         ? 'shadow-[0_0_0_calc(2px*var(--inv-zoom))_var(--warning)]'

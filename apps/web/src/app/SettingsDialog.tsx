@@ -1,4 +1,4 @@
-import { useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { Monitor, Moon, Sun, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button, Dialog, DialogContent, Field, Input, Segmented, Switch } from '@rnjb/ui';
@@ -11,6 +11,7 @@ import { usePreferences, useT, type ThemePreference } from './preferences.ts';
 import { useDialogs } from './dialogs-store.ts';
 import { FolderBrowser } from './FolderBrowser.tsx';
 import { reportError } from './report-error.ts';
+import { readTeamConfig } from './TeamImportDialog.tsx';
 
 export function SettingsDialog() {
   const open = useDialogs((state) => state.open === 'settings');
@@ -59,6 +60,18 @@ function SettingsForm({ onDone }: { onDone: () => void }) {
   const [sources, setSources] = useState(initialSources);
   const [newPackage, setNewPackage] = useState('');
   const [newPath, setNewPath] = useState('');
+  // Libraries of rnjb.team.json still without a source: one click fills the package (§10.6 step 3).
+  const [teamLibraries, setTeamLibraries] = useState<readonly string[]>([]);
+  useEffect(() => {
+    if (!settings?.workspacePath) return;
+    void readTeamConfig().then(
+      (team) => setTeamLibraries(team.libraries.map((library) => library.package)),
+      () => undefined,
+    );
+  }, [settings?.workspacePath]);
+  const unsourced = teamLibraries.filter(
+    (pkg) => !sources.some((row) => row.pkg === pkg) && settings?.librarySources[pkg] === undefined,
+  );
   const online = status === 'online' && settings !== undefined;
   const initialRemotes = settings?.remoteSources ?? [];
   const [remotes, setRemotes] = useState<readonly RemoteSource[]>(initialRemotes);
@@ -226,18 +239,21 @@ function SettingsForm({ onDone }: { onDone: () => void }) {
           </div>
         ))}
         <div className="flex items-center gap-2">
+          {/* The base Input is w-full; the wrapper sets the column width. */}
+          <div className="w-40 shrink-0">
+            <Input
+              mono
+              aria-label={i18n.t('settings.libraryPackage')}
+              placeholder={i18n.t('settings.libraryPackage')}
+              value={newPackage}
+              disabled={!online}
+              spellCheck={false}
+              onChange={(event) => setNewPackage(event.target.value)}
+            />
+          </div>
           <Input
             mono
-            aria-label={i18n.t('settings.libraryPackage')}
-            placeholder={i18n.t('settings.libraryPackage')}
-            className="w-40 shrink-0"
-            value={newPackage}
-            disabled={!online}
-            spellCheck={false}
-            onChange={(event) => setNewPackage(event.target.value)}
-          />
-          <Input
-            mono
+            className="min-w-0"
             aria-label={i18n.t('settings.libraryPath', { package: newPackage || '…' })}
             placeholder="/ruta/absoluta"
             value={newPath}
@@ -249,6 +265,16 @@ function SettingsForm({ onDone }: { onDone: () => void }) {
             {i18n.t('settings.libraryAdd')}
           </Button>
         </div>
+        {online && unsourced.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-xs text-fg-muted">{i18n.t('settings.librariesUnsourced')}</span>
+            {unsourced.map((pkg) => (
+              <Button key={pkg} size="sm" variant="secondary" onClick={() => setNewPackage(pkg)}>
+                <span className="font-mono">{pkg}</span>
+              </Button>
+            ))}
+          </div>
+        )}
       </section>
 
       <RemoteSourcesSection online={online} remotes={remotes} onChange={setRemotes} />

@@ -73,3 +73,40 @@ describe('hooks packs (§7.5)', () => {
     expect(response.json()).toEqual({ packs: [], invalid: [] });
   });
 });
+
+describe('blocks packs (§7.5)', () => {
+  it('lists the blocks saved in the workspace', async () => {
+    const block = {
+      schemaVersion: 1,
+      id: 'workspace-blocks',
+      name: 'Bloques',
+      version: '1.0.0',
+      kind: 'blocks',
+      blocks: [
+        {
+          id: 'card',
+          name: 'Card',
+          rootId: 'r',
+          nodes: {
+            r: {
+              id: 'r',
+              kind: 'component',
+              ref: { package: 'react-native', component: 'View', version: '1' },
+              props: {},
+              children: [],
+              layout: {},
+              spacing: {},
+            },
+          },
+          strings: { 'card.title': 'Hola' },
+        },
+      ],
+    };
+    await fs.mkdir(path.join(workspace, 'packs/blocks'), { recursive: true });
+    await fs.writeFile(path.join(workspace, 'packs/blocks/workspace.json'), JSON.stringify(block));
+    const response = await app.inject({ method: 'GET', url: '/v1/blocks/packs', headers: authed });
+    const body = response.json<{ packs: { blocks: { name: string }[] }[]; invalid: unknown[] }>();
+    expect(body.packs[0]?.blocks.map((entry) => entry.name)).toEqual(['Card']);
+    expect(body.invalid).toEqual([]);
+  });
+});

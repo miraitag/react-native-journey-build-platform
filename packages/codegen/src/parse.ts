@@ -98,6 +98,24 @@ function literal(expr: ts.Expression): string | number | boolean | null | undefi
   return undefined;
 }
 
+/** JSX text as React reads it: lines trimmed at their joins, blank lines dropped, joined by a space. */
+function jsxText(node: ts.JsxText): string {
+  const lines = node.text.split(/\r?\n/);
+  if (lines.length === 1) return node.text;
+  return lines
+    .map((line, index) =>
+      index === 0 ? line.trimEnd() : index === lines.length - 1 ? line.trimStart() : line.trim(),
+    )
+    .filter(Boolean)
+    .join(' ');
+}
+
+/** A text `children` value: a string literal or a document string; anything else stays code. */
+const textValue = (value: PropValue): PropValue | undefined =>
+  (value.type === 'literal' && typeof value.value === 'string') || value.type === 'string'
+    ? value
+    : undefined;
+
 function propValue(expr: ts.Expression): PropValue {
   const value = literal(expr);
   if (value !== undefined) return { type: 'literal', value };
@@ -206,6 +224,12 @@ function parseScreenNodes(
   let counter = 0;
   const nextId = () => `${screenId}.n${counter++}`;
 
+  const codeText = (source: string): string => {
+    const id = nextId();
+    nodes[id] = { id, kind: 'code', code: { language: 'tsx', source, imports: [] }, children: [] };
+    return id;
+  };
+
   const code = (expr: ts.Node): string => {
     const id = nextId();
     nodes[id] = {
@@ -247,11 +271,30 @@ function parseScreenNodes(
     }
     const children: string[] = [];
     if (ts.isJsxElement(jsx)) {
-      for (const child of jsx.children) {
-        if (isJsx(child)) children.push(element(child));
-        else if (ts.isJsxExpression(child) && child.expression)
-          children.push(code(child.expression));
-      }
+      const meaningful = jsx.children.filter(
+        (child) =>
+          !(ts.isJsxText(child) && child.containsOnlyTriviaWhiteSpaces) &&
+          !(ts.isJsxExpression(child) && !child.expression),
+      );
+      const [only] = meaningful;
+      const asText =
+        meaningful.length === 1 && only && !('children' in props)
+          ? ts.isJsxText(only)
+            ? ({ type: 'literal', value: jsxText(only) } as const)
+            : ts.isJsxExpression(only) && only.expression
+              ? textValue(propValue(only.expression))
+              : undefined
+          : undefined;
+      // `<Text>Hola</Text>` keeps its text as the `children` prop, as the editor shows it.
+      if (asText) props['children'] = asText;
+      else
+        for (const child of meaningful) {
+          if (isJsx(child)) children.push(element(child));
+          else if (ts.isJsxExpression(child) && child.expression)
+            children.push(code(child.expression));
+          // Text mixed with elements is kept as a string block, never dropped (§2.5).
+          else if (ts.isJsxText(child)) children.push(codeText(JSON.stringify(jsxText(child))));
+        }
     }
     nodes[id] = {
       id,

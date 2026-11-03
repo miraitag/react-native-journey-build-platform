@@ -165,6 +165,13 @@ function CreateJourneyForm({
     }
   };
 
+  // Name templates come from the profile; one without a translation shows its own key.
+  const keyLabel = (key: string) => {
+    const message = `create.keys.${key}` as MessageKey;
+    const label = i18n.t(message);
+    return label === message ? key : label;
+  };
+
   return (
     <form onSubmit={submit} className="flex flex-col gap-5 pt-1">
       <Field label={i18n.t('create.name')}>
@@ -226,9 +233,7 @@ function CreateJourneyForm({
               key={key}
               className="contents [&:not(:last-child)>*]:border-b [&>*]:border-line-subtle"
             >
-              <dt className="px-3 py-1.5 text-fg-muted">
-                {i18n.t(`create.keys.${key}` as MessageKey)}
-              </dt>
+              <dt className="px-3 py-1.5 text-fg-muted">{keyLabel(key)}</dt>
               <dd className="truncate px-3 py-1.5 font-mono text-fg" title={derived?.[key]}>
                 {derived ? derived[key] : <span className="text-fg-subtle">{templates[key]}</span>}
               </dd>

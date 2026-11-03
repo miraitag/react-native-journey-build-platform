@@ -1,4 +1,5 @@
 import { Component, createElement, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import * as ReactNativeWeb from 'react-native-web';
 import { AppRegistry, Text, View } from 'react-native-web';
 import { installHostRuntime, loadBundle } from './host-runtime.ts';
 import {
@@ -109,9 +110,17 @@ function collectRects(root: HTMLElement): Record<string, NodeRect> {
   return rects;
 }
 
+/**
+ * `react-native` is already here as react-native-web: its primitives render without a bundle
+ * (its own sources are Flow for native and cannot be compiled for the web).
+ */
+const BUILT_IN: Libraries = new Map([
+  ['react-native', ReactNativeWeb as unknown as Record<string, unknown>],
+]);
+
 function Frame() {
   const [state, setState] = useState<RenderMessage | undefined>();
-  const [libraries, setLibraries] = useState<Libraries>(new Map());
+  const [libraries, setLibraries] = useState<Libraries>(BUILT_IN);
   const rootRef = useRef<HTMLDivElement>(null);
 
   useLayoutEffect(() => {

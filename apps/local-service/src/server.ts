@@ -18,10 +18,11 @@ import {
 import type { EmitOptions } from '@rnjb/codegen';
 import { documentSchema } from '@rnjb/document-schema';
 import { z } from 'zod';
-import { assertAbsoluteInside } from './paths.ts';
+import { assertAbsoluteInside, resolveInside } from './paths.ts';
+import { fetchSource } from './source-fetch.ts';
 import { extractLibrary, listLibraryPacks } from './libraries.ts';
 import { listDevicesPacks } from './devices.ts';
-import { listHooksPacks } from './hooks-packs.ts';
+import { listBlocksPacks, listHooksPacks } from './hooks-packs.ts';
 import { readRemoteFile, syncRemote } from './remote-sync.ts';
 import { compileLibrary } from './bundle.ts';
 import { applyDocumentExport, planDocumentExport, runChecks } from './export.ts';
@@ -60,7 +61,10 @@ const importBody = z.object({
   libraryPath: z.string().min(1),
   examplePath: z.string().min(1).optional(),
 });
-const extractBody = z.object({ package: z.string().min(1).max(214) });
+const extractBody = z.object({
+  package: z.string().min(1).max(214),
+  dryRun: z.boolean().optional(),
+});
 const syncBody = z.object({ id: z.string().min(1).max(200).optional() });
 const remoteFileQuery = z.object({
   id: z.string().min(1).max(200),
@@ -81,11 +85,23 @@ const exportCheckBody = z.object({
   document: documentSchema,
   target: z.string().min(1).max(1024),
 });
-const importBodyRepo = z.object({
-  folder: z.string().min(1).max(1024),
-  name: z.string().min(1).max(120),
-  slug: z.string().min(1).max(100),
-});
+const importBodyRepo = z
+  .object({
+    folder: z.string().min(1).max(1024).optional(),
+    /** A git URL with its ref, and optionally a folder inside it (Bitbucket browse URLs, §17.1). */
+    git: z
+      .object({
+        url: z.string().min(1).max(2048),
+        ref: z.string().min(1).max(200),
+        path: z.string().min(1).max(1024).optional(),
+      })
+      .optional(),
+    name: z.string().min(1).max(120),
+    slug: z.string().min(1).max(100),
+    dryRun: z.boolean().optional(),
+    profileId: z.string().min(1).max(128).optional(),
+  })
+  .refine((body) => (body.folder === undefined) !== (body.git === undefined));
 
 function parse<T>(schema: z.ZodType<T>, value: unknown): T {
   const result = schema.safeParse(value);
@@ -173,6 +189,7 @@ export function buildServer(options: ServerOptions): FastifyInstance {
   app.get('/v1/libraries/packs', async () => listLibraryPacks(await currentWorkspace()));
   app.get('/v1/devices/packs', async () => listDevicesPacks(await currentWorkspace()));
   app.get('/v1/hooks/packs', async () => listHooksPacks(await currentWorkspace()));
+  app.get('/v1/blocks/packs', async () => listBlocksPacks(await currentWorkspace()));
 
   /** Extracts and stores the manifest of a library with a configured source (§7.1). */
   app.post('/v1/libraries/extract', async (request) => {
@@ -183,6 +200,7 @@ export function buildServer(options: ServerOptions): FastifyInstance {
       workspace: await currentWorkspace(),
       browseRoot,
       cacheDir: cacheDirOf(settings),
+      ...(body.dryRun !== undefined && { dryRun: body.dryRun }),
     });
   });
 
@@ -323,12 +341,27 @@ export function buildServer(options: ServerOptions): FastifyInstance {
     const body = parse(importBodyRepo, request.body);
     const slug = normalizeSlug(body.slug);
     if (!slug.ok) throw slug.error;
-    const folder = await assertAbsoluteInside(browseRoot, body.folder);
-    return importRepository(
-      folder,
-      { name: body.name, slug: slug.value.slug },
-      await currentWorkspace(),
-    );
+    const input = {
+      name: body.name,
+      slug: slug.value.slug,
+      ...(body.dryRun !== undefined && { dryRun: body.dryRun }),
+      ...(body.profileId !== undefined && { profileId: body.profileId }),
+    };
+    if (body.git) {
+      const { url, ref, path: inside } = body.git;
+      // Same shallow, prompt-less git as library sources; the clone lives in the cache (§6.6).
+      const clone = await fetchSource(
+        url,
+        { type: 'git', url, ref },
+        cacheDirOf(await options.settings.load()),
+      ).catch((cause: unknown) => {
+        throw new RnjbError('RNJB-406', { url }, { cause });
+      });
+      const folder = inside ? await resolveInside(clone, inside) : clone;
+      return importRepository(folder, { ...input, repository: url }, await currentWorkspace());
+    }
+    const folder = await assertAbsoluteInside(browseRoot, body.folder as string);
+    return importRepository(folder, input, await currentWorkspace());
   });
 
   return app;

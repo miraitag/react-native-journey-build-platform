@@ -59,6 +59,7 @@ import {
 import { flattenTree } from './Board.tsx';
 import { FRAME_HEIGHT, FRAME_WIDTH } from './board-geometry.ts';
 import { defaultProfile } from '@rnjb/profiles';
+import { BlocksPanel } from './BlocksPanel.tsx';
 import { CatalogPanel } from './CatalogPanel.tsx';
 import { DataPanel, FormsPanel } from './DataForms.tsx';
 import { LogicPanel } from './LogicPanel.tsx';
@@ -82,7 +83,8 @@ interface LeftPanelProps {
   onPanelChange: (panel: string) => void;
   screen: Screen | undefined;
   selectedNodeId: string | undefined;
-  onSelect: (screenId: string, nodeId?: string) => void;
+  extraNodeIds?: readonly string[] | undefined;
+  onSelect: (screenId: string, nodeId?: string, additive?: boolean) => void;
   onRun: (command: Command) => void;
   /** Absent when the document is read-only or no screen is selected. */
   onInsertComponent?: ((item: DraggedComponent, targetNodeId?: string) => void) | undefined;
@@ -100,6 +102,7 @@ export function LeftPanel({
   onPanelChange,
   screen,
   selectedNodeId,
+  extraNodeIds,
   onSelect,
   onRun,
   onInsertComponent,
@@ -140,15 +143,23 @@ export function LeftPanel({
           />
         </TabsContent>
         <TabsContent value="blocks">
-          <EmptyState title={i18n.t('editor.blocks.emptyTitle')}>
-            {i18n.t('editor.blocks.emptyBody')}
-          </EmptyState>
+          <BlocksPanel
+            document={document}
+            screen={screen}
+            selection={selectedNodeId ? [selectedNodeId, ...(extraNodeIds ?? [])] : []}
+            onAdd={
+              onInsertComponent && screen
+                ? (item) => onInsertComponent(item, selectedNodeId)
+                : undefined
+            }
+          />
         </TabsContent>
         <TabsContent value="layers">
           {screen ? (
             <LayerTree
               screen={screen}
               selectedNodeId={selectedNodeId}
+              extraNodeIds={extraNodeIds}
               onSelect={onSelect}
               onMoveNode={onMoveNode}
               canMoveNode={canMoveNode}
@@ -454,13 +465,15 @@ function dropPositionAt(event: DragEvent<HTMLElement>): DropPosition {
 function LayerTree({
   screen,
   selectedNodeId,
+  extraNodeIds,
   onSelect,
   onMoveNode,
   canMoveNode,
 }: {
   screen: Screen;
   selectedNodeId: string | undefined;
-  onSelect: (screenId: string, nodeId?: string) => void;
+  extraNodeIds?: readonly string[] | undefined;
+  onSelect: (screenId: string, nodeId?: string, additive?: boolean) => void;
   onMoveNode: LeftPanelProps['onMoveNode'];
   canMoveNode: LeftPanelProps['canMoveNode'];
 }) {
@@ -489,7 +502,7 @@ function LayerTree({
       className="flex flex-col gap-px px-1.5 pb-2"
     >
       {flattenTree(screen).map(({ node, depth }) => {
-        const selected = node.id === selectedNodeId;
+        const selected = node.id === selectedNodeId || extraNodeIds?.includes(node.id) === true;
         const name =
           node.kind === 'component' ? (node.name ?? node.ref.component) : (node.name ?? codeLabel);
         const siblings = siblingsOf(node.id);
@@ -552,7 +565,7 @@ function LayerTree({
             <button
               type="button"
               aria-current={selected || undefined}
-              onClick={() => onSelect(screen.id, node.id)}
+              onClick={(event) => onSelect(screen.id, node.id, event.shiftKey)}
               style={{ paddingLeft: 8 + Math.min(depth, 12) * 12 }}
               className={cx(rowClass(selected, 'sm'), movable && selected && 'pr-14')}
             >
@@ -560,7 +573,7 @@ function LayerTree({
                 {name}
               </span>
             </button>
-            {movable && selected && node.id !== screen.rootId && (
+            {movable && node.id === selectedNodeId && node.id !== screen.rootId && (
               <span className="absolute top-0 right-1 flex h-6 items-center">
                 <IconButton
                   size="sm"

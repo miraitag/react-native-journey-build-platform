@@ -69,7 +69,8 @@ interface BoardProps {
   document: RnjbDocument;
   selectedScreenId: string | undefined;
   selectedNodeId: string | undefined;
-  onSelect: (screenId: string, nodeId?: string) => void;
+  extraNodeIds?: readonly string[] | undefined;
+  onSelect: (screenId: string, nodeId?: string, additive?: boolean) => void;
   /** Absent when the document is read-only. */
   onMoveScreen?: (screenId: string, position: { x: number; y: number }) => void;
   previewTheme?: 'light' | 'dark';
@@ -92,6 +93,7 @@ export function Board({
   document,
   selectedScreenId,
   selectedNodeId,
+  extraNodeIds,
   onSelect,
   onMoveScreen,
   previewTheme = 'light',
@@ -251,8 +253,8 @@ export function Board({
   documentRef.current = document;
   // Prototype mode: clicking a trigger follows its connection; anything else only selects the screen.
   const selectInBoard = useCallback(
-    (screenId: string, nodeId?: string) => {
-      if (!prototype || !nodeId) return onSelect(screenId, nodeId);
+    (screenId: string, nodeId?: string, additive?: boolean) => {
+      if (!prototype || !nodeId) return onSelect(screenId, nodeId, additive);
       const current = documentRef.current;
       const source = current.screens.find((screen) => screen.id === screenId);
       const connection = source && findNavigation(source, current.connections, nodeId);
@@ -475,6 +477,7 @@ export function Board({
                 simplified={simplified}
                 selected={screen.id === selectedScreenId}
                 selectedNodeId={screen.id === selectedScreenId ? selectedNodeId : undefined}
+                extraNodeIds={screen.id === selectedScreenId ? extraNodeIds : undefined}
                 onSelect={selectInBoard}
                 onFocusScreen={fitScreen}
                 onMove={prototype || !onMoveScreen ? undefined : moveScreen}
@@ -511,9 +514,6 @@ export function Board({
           <Focus size={13} aria-hidden />
           {i18n.t('editor.board.focus')}
         </Button>
-        <Badge className="pointer-events-auto shadow-[0_0_0_1px_var(--line-subtle)]">
-          {i18n.t('editor.board.previewPending')}
-        </Badge>
       </div>
 
       {selectedScreen && !simplified && (
@@ -575,7 +575,8 @@ interface FrameProps {
   simplified: boolean;
   selected: boolean;
   selectedNodeId: string | undefined;
-  onSelect: (screenId: string, nodeId?: string) => void;
+  extraNodeIds?: readonly string[] | undefined;
+  onSelect: (screenId: string, nodeId?: string, additive?: boolean) => void;
   onFocusScreen: (screenId: string) => void;
   onMove: ((screenId: string, position: { x: number; y: number }) => void) | undefined;
   onInsertComponent: BoardProps['onInsertComponent'];
@@ -625,6 +626,7 @@ function Frame({
   simplified,
   selected,
   selectedNodeId,
+  extraNodeIds,
   onSelect,
   onFocusScreen,
   onMove,
@@ -722,7 +724,8 @@ function Frame({
             theme={previewTheme}
             stateId={stateId}
             selectedNodeId={selectedNodeId}
-            onSelectNode={(nodeId) => onSelect(screen.id, nodeId)}
+            extraNodeIds={extraNodeIds}
+            onSelectNode={(nodeId, additive) => onSelect(screen.id, nodeId, additive)}
             onInsertComponent={onInsertComponent}
             canInsertComponent={canInsertComponent}
             strings={strings}
@@ -733,7 +736,8 @@ function Frame({
               <FrameStructure
                 screen={screen}
                 selectedNodeId={selectedNodeId}
-                onSelectNode={(nodeId) => onSelect(screen.id, nodeId)}
+                extraNodeIds={extraNodeIds}
+                onSelectNode={(nodeId, additive) => onSelect(screen.id, nodeId, additive)}
               />
             }
           />
@@ -741,7 +745,8 @@ function Frame({
           <FrameStructure
             screen={screen}
             selectedNodeId={selectedNodeId}
-            onSelectNode={(nodeId) => onSelect(screen.id, nodeId)}
+            extraNodeIds={extraNodeIds}
+            onSelectNode={(nodeId, additive) => onSelect(screen.id, nodeId, additive)}
           />
         )}
       </div>
@@ -774,11 +779,13 @@ export function flattenTree(
 function FrameStructure({
   screen,
   selectedNodeId,
+  extraNodeIds,
   onSelectNode,
 }: {
   screen: Screen;
   selectedNodeId: string | undefined;
-  onSelectNode: (nodeId: string) => void;
+  extraNodeIds?: readonly string[] | undefined;
+  onSelectNode: (nodeId: string, additive?: boolean) => void;
 }) {
   const i18n = useT();
   const rows = flattenTree(screen, MAX_ROWS);
@@ -791,12 +798,12 @@ function FrameStructure({
           key={node.id}
           onClick={(event) => {
             event.stopPropagation();
-            onSelectNode(node.id);
+            onSelectNode(node.id, event.shiftKey);
           }}
           style={{ marginLeft: Math.min(depth, 8) * 12 }}
           className={cx(
             'flex h-6 items-center gap-2 rounded-sm px-2 font-mono text-2xs',
-            node.id === selectedNodeId
+            node.id === selectedNodeId || extraNodeIds?.includes(node.id)
               ? 'bg-accent-subtle text-accent-fg shadow-[inset_0_0_0_1.5px_var(--selection-color)]'
               : node.kind === 'code'
                 ? 'border border-dashed border-line text-fg-muted hover:bg-hover'

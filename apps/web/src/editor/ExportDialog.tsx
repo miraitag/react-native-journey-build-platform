@@ -333,7 +333,9 @@ function ExportBody({ onDone }: { onDone: () => void }) {
               disabled={busy || pending.length > 0 || written !== undefined}
               onClick={() => void write()}
             >
-              {i18n.t('export.write', { count: included.length })}
+              {included.length === 1
+                ? i18n.t('export.writeOne')
+                : i18n.t('export.write', { count: included.length })}
             </Button>
           </div>
         </>

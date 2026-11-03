@@ -280,3 +280,41 @@ describe('one journey, two profiles (§23.4)', () => {
     ]);
   });
 });
+
+describe('JSX text (§2.5: no code is lost)', () => {
+  it('reads text content as the children prop, joined the way React does', () => {
+    const files = {
+      'src/private/presentation/screens/inicio/inicio.screen.tsx': `import { Text, View } from 'react-native';
+export function InicioScreen() {
+  return (
+    <View>
+      <Text>
+        ¿Dónde está
+        mi pedido?
+      </Text>
+      <Text>{'a{b}'}</Text>
+      <Text>
+        Hola <Text>mundo</Text>
+      </Text>
+    </View>
+  );
+}
+`,
+    };
+    const { project } = parseProject(files, defaultProfile);
+    const nodes = Object.values(project.screens[0]?.nodes ?? {});
+    const texts = nodes.flatMap((node) =>
+      node.kind === 'component' && node.props.children ? [node.props.children] : [],
+    );
+    expect(texts).toContainEqual({ type: 'literal', value: '¿Dónde está mi pedido?' });
+    expect(texts).toContainEqual({ type: 'literal', value: 'a{b}' });
+    expect(texts).toContainEqual({ type: 'literal', value: 'mundo' });
+    // Text next to an element is kept as a string block.
+    expect(nodes).toContainEqual(
+      expect.objectContaining({
+        kind: 'code',
+        code: expect.objectContaining({ source: '"Hola "' }),
+      }),
+    );
+  });
+});

@@ -40,6 +40,7 @@ export const ERROR_CATALOG = {
   'RNJB-403': { severity: 'error' }, // path outside allowed roots
   'RNJB-404': { severity: 'error' }, // file not found
   'RNJB-405': { severity: 'error' }, // settings invalid
+  'RNJB-406': { severity: 'error' }, // repository to import could not be cloned
   // Workspace (§6.1)
   'RNJB-501': { severity: 'warning' }, // workspace not configured
   'RNJB-502': { severity: 'error' }, // package.json invalid on import
@@ -53,6 +54,7 @@ export const ERROR_CATALOG = {
   'RNJB-607': { severity: 'error' }, // connection not found
   'RNJB-608': { severity: 'error' }, // form, field, model or gateway method not found
   'RNJB-609': { severity: 'error' }, // form/data name or value invalid or already used
+  'RNJB-610': { severity: 'error' }, // nodes to wrap are not siblings
 } as const satisfies Record<string, { severity: Severity }>;
 
 export type ErrorCode = keyof typeof ERROR_CATALOG;

@@ -35,7 +35,7 @@ La primera vez, Inicio muestra la tarjeta **Primeros pasos** con estos pasos en 
 
 1. **Elegir el espacio de trabajo.** Es la carpeta donde viven `journeys/`, `templates/`, `packs/` y `rnjb.team.json`. Si está vacía, se crea la estructura.
 2. **Importar el package.json del equipo.** Elige la carpeta de una feature library de referencia y, si quieres, la de su app de ejemplo. La plataforma propone las librerías y sus versiones, y las guarda en `rnjb.team.json`. Las dependencias que apuntan a rutas locales (`workspace:`, `file:`…) se omiten.
-3. **Configurar las fuentes de librerías.** En **Ajustes**, indica dónde está el código de cada librería, para poder extraer sus componentes.
+3. **Configurar las fuentes de librerías.** En **Ajustes**, indica dónde está el código de cada librería, para poder extraer sus componentes. Las librerías del equipo que aún no tienen fuente aparecen como botones: pulsa una para rellenar su nombre. Para las primitivas (`View`, `Text`, `TextInput`, `Button`…), usa como fuente la carpeta `node_modules/react-native` de cualquier app del equipo. La plataforma ya conoce sus reglas: `TextInput` o `Image` no aceptan hijos, `Text` solo acepta `Text`, y qué texto se edita en el lienzo. En la vista previa se dibujan con react-native-web, sin compilar nada.
 4. **Agregar fuentes remotas** (opcional). Pega la URL de un repositorio de Bitbucket con journeys y plantillas compartidos. Son de solo lectura y usan las credenciales de git de tu máquina; la plataforma nunca guarda un token.
 5. **Crear tu primer journey,** desde una plantilla o importando una feature library existente.
 
@@ -44,6 +44,7 @@ La tarjeta desaparece cuando terminas los pasos obligatorios. También puedes oc
 ## Journeys y pestañas
 
 - **Crear:** **Crear journey** (`Alt N`). El slug se deriva del nombre y define el paquete exportado.
+- **Buscar en Inicio:** por nombre, slug o librería, y con filtros de origen (local, importado, remoto), librería, perfil y fecha de modificación.
 - **Abrir:** desde Inicio, o un `.rnjb` suelto con **Abrir archivo** (`Ctrl/⌘ O`) o arrastrándolo a la ventana.
 - **Pestañas:** cada journey o plantilla abre en su pestaña. `Ctrl/⌘ 1–9` cambia de pestaña, las flechas recorren la barra y `Supr` cierra la pestaña enfocada. A partir de 8 pestañas, las menos usadas se descargan de memoria y vuelven con su historial al activarlas.
 - **Guardado:** hay dos niveles. El borrador se guarda en el navegador casi al instante. El archivo `.rnjb` se guarda 5 s después del último cambio, al cerrar, al ocultar la ventana y con `Ctrl/⌘ S`. Si cierras con cambios sin guardar en el archivo, el borrador queda en Inicio.
@@ -64,7 +65,9 @@ Si un archivo abierto cambia en disco (por ejemplo, después de un `git pull`):
 - **Lienzo:** las pantallas del journey y sus conexiones. Doble clic en el nombre de una pantalla la acerca. `⇧ 1` ajusta todo a la vista y `Ctrl/⌘ +/−` cambia el zoom.
 - **Modo Prototipo:** al hacer clic en un disparador se sigue la navegación, como en la app.
 - **Enfoque:** muestra solo la pantalla seleccionada.
-- **Catálogo:** arrastra componentes de las librerías a la pantalla. Las zonas inválidas se marcan.
+- **Catálogo:** arrastra componentes de las librerías a la pantalla, o pulsa uno para añadirlo dentro del nodo seleccionado. Las zonas inválidas se marcan. Al volver a extraer una librería, si su manifiesto cambió, se muestran los componentes y props nuevos, eliminados o cambiados para aceptarlos o rechazarlos; nada se guarda antes de aceptar.
+- **Selección y edición rápida:** `⇧`+clic, en Capas o en el lienzo, agrega o quita nodos de la selección. Con nodos seleccionados puedes copiar (`Ctrl/⌘ C`) y pegar (`Ctrl/⌘ V`) entre pantallas, pestañas y journeys (los textos viajan con ellos), duplicar (`Ctrl/⌘ D`), envolverlos en un contenedor (`Ctrl/⌘ Alt G`, solo si son hermanos) y mover el nodo arriba o abajo (`Alt ↑/↓`).
+- **Bloques:** selecciona uno o varios nodos, escribe un nombre en el panel **Bloques** y pulsa **Guardar como bloque**. El bloque se guarda en `packs/blocks/workspace.json` y se puede arrastrar o añadir en cualquier journey; al insertarlo, sus nodos reciben IDs nuevos. Si guardas varios nodos, quedan dentro de un `View`.
 - **Inspector:** props, layout (flexbox) y espaciado del nodo seleccionado. Un valor puede ser literal, texto del documento, token, ícono, binding o expresión. Doble clic en un texto lo edita sobre el lienzo.
 - **Estados de pantalla:** cada pantalla tiene estados (por ejemplo `loading` o `success`) con datos de muestra.
 - **Formularios, lógica y datos:** formularios con validación, hooks con sus dependencias, efectos editados en Monaco, y modelos y gateways en el panel **Datos**.
@@ -101,7 +104,9 @@ Puedes exportar varias veces sin hacer commit entre una y otra: los archivos que
 
 **Importar** crea un journey a partir de una feature library existente. El repositorio solo se lee.
 
-- **Perfil:** se detecta por la estructura de carpetas. Si ningún perfil llega al 70 %, se usa el perfil por defecto y lo que no coincide queda como bloques de código.
+- **Origen:** una carpeta local (**Examinar**) o una URL git con su rama, tag o commit. Se aceptan URLs de navegación de Bitbucket Cloud y Data Center: la plataforma toma de ellas el remoto, la rama y la carpeta. El clon usa las credenciales git de la máquina y se guarda en la caché.
+- **Revisión:** **Analizar** muestra el reporte sin escribir nada. **Crear journey** escribe el `.rnjb` y lo abre en una pestaña. Si el repositorio usa git, el journey guarda en `provenance.importedFrom` el remoto y el commit, nunca la ruta local.
+- **Perfil:** se detecta por la estructura de carpetas, y en el reporte puedes elegir otro. Si ningún perfil llega al 70 %, se usa el perfil por defecto y lo que no coincide queda como bloques de código.
 - **Reporte:** muestra la cobertura por pantalla, los archivos conservados completos como bloques de código y los archivos de `src/` que no se leyeron (no son TypeScript o pasan de 512 KB). La exportación no regenera esos archivos.
 
 ## Atajos
@@ -114,6 +119,11 @@ Puedes exportar varias veces sin hacer commit entre una y otra: los archivos que
 | Guardar / Guardar como                      | `Ctrl/⌘ S` / `Ctrl/⌘ ⇧ S` |
 | Deshacer / Rehacer                          | `Ctrl/⌘ Z` / `Ctrl/⌘ ⇧ Z` |
 | Eliminar el nodo o la pantalla seleccionada | `⌫`                       |
+| Agregar o quitar un nodo de la selección    | `⇧` + clic                |
+| Copiar / Pegar nodos                        | `Ctrl/⌘ C` / `Ctrl/⌘ V`   |
+| Duplicar nodos                              | `Ctrl/⌘ D`                |
+| Envolver en un contenedor                   | `Ctrl/⌘ Alt G`            |
+| Mover el nodo arriba / abajo                | `Alt ↑` / `Alt ↓`         |
 | Cerrar la pestaña enfocada                  | `Supr`                    |
 
 ## Si algo falla

@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { Badge, Button, EmptyState, Input } from '@rnjb/ui';
+import { Badge, Button, Dialog, DialogContent, EmptyState, Input } from '@rnjb/ui';
 import type { ComponentManifest } from '@rnjb/pack-schema';
 import { useT } from '../app/preferences.ts';
 import { reportError } from '../app/report-error.ts';
 import { useLibraries } from '../services/library-store.ts';
 import { useService } from '../services/service-store.ts';
+import type { LibraryDiff } from '../services/local-service.ts';
 import { useCatalogDrag } from './catalog-drag.ts';
 import type { DraggedComponent } from './insert-component.ts';
 
@@ -33,7 +34,9 @@ export function CatalogPanel({
   const extracting = useLibraries((state) => state.extracting);
   const load = useLibraries((state) => state.load);
   const extract = useLibraries((state) => state.extract);
+  const review = useLibraries((state) => state.review);
   const [query, setQuery] = useState('');
+  const [pending, setPending] = useState<{ pkg: string; diff: LibraryDiff }>();
   const online = status === 'online';
 
   useEffect(() => {
@@ -42,7 +45,20 @@ export function CatalogPanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [online, load]);
 
+  /** A re-extraction that changes the manifest is reviewed first; nothing is written until accepted. */
   const run = async (pkg: string) => {
+    try {
+      if (packs.some((pack) => pack.package === pkg)) {
+        const diff = await review(pkg);
+        if (changeCount(diff) > 0) return setPending({ pkg, diff });
+      }
+      await apply(pkg);
+    } catch (error) {
+      reportError(error, i18n);
+    }
+  };
+
+  const apply = async (pkg: string) => {
     try {
       const diff = await extract(pkg);
       const pack = useLibraries.getState().packs.find((candidate) => candidate.package === pkg);
@@ -77,6 +93,14 @@ export function CatalogPanel({
   const needle = query.trim().toLowerCase();
   return (
     <div className="flex flex-col gap-3 px-3 pb-3">
+      <ManifestReview
+        pending={pending}
+        onClose={() => setPending(undefined)}
+        onAccept={(pkg) => {
+          setPending(undefined);
+          void apply(pkg);
+        }}
+      />
       <Input
         aria-label={i18n.t('editor.catalog.search')}
         placeholder={i18n.t('editor.catalog.search')}
@@ -119,7 +143,7 @@ export function CatalogPanel({
                   {components.map((component) => (
                     <li
                       key={component.name}
-                      className="flex items-center rounded-sm hover:bg-hover"
+                      className="flex items-center rounded-sm [contain-intrinsic-size:auto_28px] [content-visibility:auto] hover:bg-hover"
                     >
                       <button
                         type="button"
@@ -150,5 +174,69 @@ export function CatalogPanel({
         );
       })}
     </div>
+  );
+}
+
+const changeCount = (diff: LibraryDiff) =>
+  diff.addedComponents.length + diff.removedComponents.length + diff.changedComponents.length;
+
+/** Review of what a new version of the library changes in its manifest (§7.2). */
+function ManifestReview({
+  pending,
+  onClose,
+  onAccept,
+}: {
+  pending: { pkg: string; diff: LibraryDiff } | undefined;
+  onClose: () => void;
+  onAccept: (pkg: string) => void;
+}) {
+  const i18n = useT();
+  const diff = pending?.diff;
+  const list = (title: string, names: readonly string[]) =>
+    names.length > 0 && (
+      <section className="flex flex-col gap-1">
+        <h3 className="text-xs font-semibold">{title}</h3>
+        <ul className="font-mono text-xs">
+          {names.map((name) => (
+            <li key={name}>{name}</li>
+          ))}
+        </ul>
+      </section>
+    );
+  return (
+    <Dialog open={pending !== undefined} onOpenChange={(open) => !open && onClose()}>
+      {pending && diff && (
+        <DialogContent
+          title={i18n.t('editor.catalog.reviewTitle', { package: pending.pkg })}
+          description={i18n.t('editor.catalog.reviewBody')}
+          closeLabel={i18n.t('common.close')}
+          width={480}
+        >
+          <div className="flex max-h-80 flex-col gap-3 overflow-auto">
+            {list(i18n.t('editor.catalog.reviewAdded'), diff.addedComponents)}
+            {list(i18n.t('editor.catalog.reviewRemoved'), diff.removedComponents)}
+            {list(
+              i18n.t('editor.catalog.reviewChanged'),
+              diff.changedComponents.map((change) =>
+                [
+                  change.name,
+                  ...change.addedProps.map((prop) => `+${prop}`),
+                  ...change.removedProps.map((prop) => `−${prop}`),
+                  ...change.changedProps.map((prop) => `~${prop}`),
+                ].join(' '),
+              ),
+            )}
+          </div>
+          <div className="flex justify-end gap-2 pt-4">
+            <Button size="sm" variant="ghost" onClick={onClose}>
+              {i18n.t('editor.catalog.reviewReject')}
+            </Button>
+            <Button size="sm" variant="primary" onClick={() => onAccept(pending.pkg)}>
+              {i18n.t('editor.catalog.reviewAccept')}
+            </Button>
+          </div>
+        </DialogContent>
+      )}
+    </Dialog>
   );
 }

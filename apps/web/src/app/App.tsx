@@ -1,4 +1,4 @@
-import { useEffect, useState, type DragEvent } from 'react';
+import { Suspense, lazy, useEffect, useState, type DragEvent } from 'react';
 import { FileUp } from 'lucide-react';
 import { Toaster, TooltipProvider } from '@rnjb/ui';
 import { useService } from '../services/service-store.ts';
@@ -23,10 +23,15 @@ import { startTrashPurge } from './trash.ts';
 import { ErrorBoundary } from './ErrorBoundary.tsx';
 import { TabBar } from './TabBar.tsx';
 import { StatusBar } from './StatusBar.tsx';
-import { CommandPalette } from './CommandPalette.tsx';
+import { useDialogs } from './dialogs-store.ts';
 import { SettingsDialog } from './SettingsDialog.tsx';
 import { ShortcutsDialog } from './ShortcutsDialog.tsx';
 import { TrashDialog } from '../home/TrashDialog.tsx';
+
+// Opened only with Cmd/Ctrl+K; `cmdk` stays out of the initial bundle (§5.1).
+const CommandPalette = lazy(() =>
+  import('./CommandPalette.tsx').then((module) => ({ default: module.CommandPalette })),
+);
 
 const hasFiles = (event: DragEvent) => event.dataTransfer.types.includes('Files');
 
@@ -49,6 +54,7 @@ export function App() {
   const settings = useService((state) => state.settings);
   const activeId = useTabs((state) => state.activeId);
   const activeTab = useTabs(selectActiveTab);
+  const paletteOpen = useDialogs((state) => state.open === 'palette');
   const [dragging, setDragging] = useState(false);
 
   useEffect(() => {
@@ -172,7 +178,11 @@ export function App() {
           </div>
         )}
       </div>
-      <CommandPalette />
+      {paletteOpen && (
+        <Suspense fallback={null}>
+          <CommandPalette />
+        </Suspense>
+      )}
       <SettingsDialog />
       <CreateJourneyDialog />
       <ShortcutsDialog />

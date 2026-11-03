@@ -30,6 +30,14 @@ export const es = {
       settings: 'Ajustes',
     },
     filters: {
+      library: 'Filtrar por librería',
+      anyLibrary: 'Todas las librerías',
+      profile: 'Filtrar por perfil',
+      anyProfile: 'Todos los perfiles',
+      date: 'Filtrar por fecha de modificación',
+      anyDate: 'Cualquier fecha',
+      week: 'Últimos 7 días',
+      month: 'Últimos 30 días',
       label: 'Filtrar por origen',
       all: 'Todo',
       local: 'Local',
@@ -129,6 +137,7 @@ export const es = {
       navigator: 'Navigator',
       context: 'Context',
       params: 'Params',
+      props: 'Props públicas',
     },
     submit: 'Crear journey',
     titleFromTemplate: 'Crear journey desde plantilla',
@@ -158,6 +167,14 @@ export const es = {
       trash: 'Papelera',
     },
     catalog: {
+      reviewTitle: 'Cambios en {package}',
+      reviewBody:
+        'La nueva extracción cambia el manifiesto. Lo curado por el equipo se conserva. Nada se guarda hasta que aceptes.',
+      reviewAdded: 'Componentes nuevos',
+      reviewRemoved: 'Componentes eliminados',
+      reviewChanged: 'Componentes con cambios en props (+ nueva, − eliminada, ~ cambiada)',
+      reviewAccept: 'Aceptar cambios',
+      reviewReject: 'Rechazar',
       emptyTitle: 'El catálogo está vacío',
       emptyBody:
         'Los componentes salen de los packs de librería activos en rnjb.team.json. Configura las fuentes de librería en Ajustes para extraer sus manifiestos.',
@@ -174,7 +191,14 @@ export const es = {
       noSource: 'Sin fuente configurada en Ajustes',
       needsService: 'Requiere el servicio local.',
     },
+    nodes: {
+      copied: 'Nodos copiados: {count}',
+    },
     blocks: {
+      name: 'Nombre del bloque',
+      save: 'Guardar como bloque',
+      saved: 'Bloque «{name}» guardado',
+      selectFirst: 'Selecciona uno o varios nodos (Mayús+clic) en Capas o en el lienzo.',
       emptyTitle: 'Sin bloques',
       emptyBody:
         'Selecciona varios nodos y usa «Guardar como bloque» para arrastrarlos como una unidad en otros journeys.',
@@ -299,7 +323,6 @@ export const es = {
       emptyTitle: 'Lienzo vacío',
       emptyBody: 'Este journey todavía no tiene pantallas.',
       structure: '{count} nodos',
-      previewPending: 'Vista estructural: la vista previa necesita los bundles de las librerías.',
       prototypeOn: 'Prototipo',
       prototypeOff: 'Volver a editar',
       focus: 'Enfoque',
@@ -320,6 +343,7 @@ export const es = {
       navigation: 'Navegación',
       emptyTitle: 'Nada seleccionado',
       emptyBody: 'Selecciona un nodo en el lienzo o en Capas para ver sus props.',
+      filterProps: 'Filtrar props',
       noProps: 'Este nodo no tiene props asignadas.',
       noLayout: 'Sin layout ni espaciado propios.',
       layoutSection: 'Layout (flexbox)',
@@ -482,6 +506,7 @@ export const es = {
     trashRetentionHint: 'Tiempo antes de purgar lo eliminado.',
     libraries: 'Fuentes de librería',
     librariesHint: 'Carpeta local de cada paquete del equipo, de donde se extrae su manifiesto.',
+    librariesUnsourced: 'Del equipo, sin fuente:',
     librariesNone: 'Sin fuentes configuradas.',
     libraryPath: 'Ruta de {package}',
     libraryPackage: 'Paquete (p. ej. @acme/ui)',
@@ -539,6 +564,13 @@ export const es = {
     undo: 'Deshacer',
     redo: 'Rehacer',
     delete: 'Eliminar el nodo o la pantalla seleccionada',
+    click: 'clic',
+    multiSelect: 'Agregar o quitar un nodo de la selección',
+    copy: 'Copiar los nodos seleccionados',
+    paste: 'Pegar dentro del nodo seleccionado',
+    duplicate: 'Duplicar los nodos seleccionados',
+    wrap: 'Envolver la selección en un contenedor',
+    moveNode: 'Mover el nodo arriba o abajo',
   },
   narrow: {
     title: 'La ventana es demasiado estrecha para editar',
@@ -649,7 +681,15 @@ export const es = {
     description:
       'Se analiza la carpeta y se crea un journey nuevo. El repositorio solo se lee: nunca se modifica.',
     folder: 'Carpeta de la librería',
-    run: 'Importar',
+    source: 'Origen',
+    sourceFolder: 'Carpeta local',
+    sourceGit: 'URL git',
+    url: 'URL del repositorio (también de Bitbucket)',
+    urlFolder: 'Carpeta dentro del repositorio: {path}',
+    ref: 'Rama, tag o commit',
+    analyse: 'Analizar',
+    create: 'Crear journey',
+    useProfile: 'Perfil para importar',
     done: '«{name}» importado',
     coverage: '{name}: {percent} % de nodos visuales, {blocks} bloques de código',
     profile: 'Perfil detectado: {id} ({percent} % de coincidencia).',
@@ -697,6 +737,7 @@ export const es = {
     current: 'Versión actual en disco',
     conflictsPending: '{count} conflictos por resolver',
     write: 'Escribir {count} archivos',
+    writeOne: 'Escribir 1 archivo',
     done: '{count} archivos escritos',
     runChecks: 'Ejecutar checks',
     zip: 'Descargar ZIP',
@@ -831,6 +872,11 @@ export const es = {
       message: 'Los datos enviados no son válidos.',
       action: 'Revisa los campos marcados.',
     },
+    'RNJB-406': {
+      message: 'No se pudo clonar el repositorio {url}.',
+      action:
+        'Revisa la URL y la rama, y que git pueda acceder con las credenciales de esta máquina (SSH o credential helper).',
+    },
     'RNJB-501': {
       message: 'No hay un espacio de trabajo configurado.',
       action: 'Elige una carpeta en Ajustes.',
@@ -867,6 +913,10 @@ export const es = {
       message: '«{name}» no es válido o ya se usó ({kind}).',
       action:
         'Usa letras y números empezando por una letra, una expresión regular válida o un valor que no esté vacío ni repetido.',
+    },
+    'RNJB-610': {
+      message: 'Solo se pueden envolver nodos que estén en el mismo contenedor.',
+      action: 'Selecciona nodos hermanos, o muévelos primero al mismo contenedor.',
     },
   },
 };

@@ -8,6 +8,7 @@ import {
 } from '@rnjb/core';
 import type { CheckResult, ExportPlanResult, ExportScope, ImportReport } from '@rnjb/codegen';
 import type {
+  BlocksPack,
   DevicesPack,
   HooksPack,
   LibraryPack,
@@ -156,14 +157,17 @@ class LocalServiceClient {
     this.request<{ packs: DevicesPack[]; invalid: { path: string }[] }>('GET', '/v1/devices/packs');
   listHooksPacks = () =>
     this.request<{ packs: HooksPack[]; invalid: { path: string }[] }>('GET', '/v1/hooks/packs');
+  listBlocksPacks = () =>
+    this.request<{ packs: BlocksPack[]; invalid: { path: string }[] }>('GET', '/v1/blocks/packs');
   libraryBundle = (pkg: string) =>
     this.request<{ key: string; globalName: string; code: string; shims: string[] }>(
       'GET',
       `/v1/libraries/bundle?package=${encodeURIComponent(pkg)}`,
     );
-  extractLibrary = (pkg: string) =>
+  extractLibrary = (pkg: string, dryRun = false) =>
     this.request<{ pack: LibraryPack; diff: LibraryDiff }>('POST', '/v1/libraries/extract', {
       package: pkg,
+      dryRun,
     });
   importPackageJson = (libraryPath: string, examplePath?: string) =>
     this.request<PackageJsonImport>('POST', '/v1/team/import-package-json', {
@@ -195,17 +199,30 @@ class LocalServiceClient {
     });
   checkExport = (document: RnjbDocument, target: string) =>
     this.request<CheckResult[]>('POST', '/v1/export/check', { document, target });
-  importRepository = (folder: string, name: string, slug: string) =>
-    this.request<{
-      path: string;
-      report: ImportReport;
-      skipped: string[];
-      profile: { id: string; score: number; threshold: number; detected: boolean };
-    }>('POST', '/v1/import/run', {
-      folder,
-      name,
-      slug,
-    });
+  /** Analyses (`dryRun`) or imports a feature library from a folder or a git URL (§17). */
+  importRepository = (source: ImportSource, input: ImportInput) =>
+    this.request<ImportResult>('POST', '/v1/import/run', { ...source, ...input });
+}
+
+/** Where an import reads from: a local folder, or a git URL with its ref and an optional folder. */
+export type ImportSource =
+  { folder: string } | { git: { url: string; ref: string; path?: string } };
+
+export interface ImportInput {
+  name: string;
+  slug: string;
+  dryRun?: boolean;
+  profileId?: string;
+}
+
+export interface ImportResult {
+  path: string;
+  report: ImportReport;
+  skipped: string[];
+  profile: { id: string; score: number; threshold: number; detected: boolean };
+  profiles: { id: string; score: number }[];
+  used: string;
+  written: boolean;
 }
 
 export const localService = new LocalServiceClient();

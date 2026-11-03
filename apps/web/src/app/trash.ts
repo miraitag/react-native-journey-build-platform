@@ -54,7 +54,8 @@ export async function trashNode(tabId: string, screenId: string, nodeId: string)
     const node = payload.nodes[nodeId] as DocumentNode;
     const label = nodeName(node, i18n.t('editor.layers.code'));
     tabs.apply(tabId, removeNode(screenId, nodeId));
-    if (tab.view.selectedNodeId === nodeId) tabs.updateView(tabId, { selectedNodeId: undefined });
+    if (tab.view.selectedNodeId === nodeId || tab.view.extraNodeIds?.includes(nodeId))
+      tabs.updateView(tabId, { selectedNodeId: undefined, extraNodeIds: [] });
     const item: TrashItem = {
       ...stamp(`${tabId}:node:${nodeId}`),
       kind: 'node',

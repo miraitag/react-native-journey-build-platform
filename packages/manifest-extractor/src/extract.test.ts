@@ -232,3 +232,50 @@ describe('mergeManifest', () => {
     expect(diff.changedComponents[0]?.addedProps).toEqual(['b']);
   });
 });
+
+describe('libraries shaped like react-native (types folder, class components, no @types/react)', () => {
+  let rn: string;
+  beforeAll(async () => {
+    rn = await mkdtemp(path.join(os.tmpdir(), 'rnjb-extract-rn-'));
+    const write = async (file: string, contents: string) => {
+      await mkdir(path.dirname(path.join(rn, file)), { recursive: true });
+      await writeFile(path.join(rn, file), contents);
+    };
+    // `"types"` names a folder, and `react` types are not installed next to the library.
+    await write(
+      'package.json',
+      JSON.stringify({ name: 'react-native', version: '0.80.3', types: 'types' }),
+    );
+    await write(
+      'types/index.d.ts',
+      `export * from '../Libraries/View/View';\nexport * from '../Libraries/Color';\n`,
+    );
+    await write(
+      'Libraries/View/View.d.ts',
+      `import type * as React from 'react';
+export interface ViewProps { testID?: string; children?: React.ReactNode }
+declare class ViewComponent extends React.Component<ViewProps> {}
+declare const ViewBase: typeof ViewComponent;
+export class View extends ViewBase {}
+export declare const RootTagContext: React.Context<number>;
+`,
+    );
+    await write(
+      'Libraries/Color.d.ts',
+      `export function PlatformColor(...names: string[]): object;\n`,
+    );
+  });
+  afterAll(async () => {
+    await rm(rn, { recursive: true, force: true });
+  });
+
+  it('finds the entry in the types folder and reads class props through the platform React types', async () => {
+    const result = await extractManifest(rn, { expectedPackage: 'react-native' });
+    expect(result.entry).toBe('types/index.d.ts');
+    expect(result.components.map((component) => component.name)).toEqual(['View']);
+    expect(result.components[0]?.props.map((prop) => prop.name).sort()).toEqual([
+      'children',
+      'testID',
+    ]);
+  });
+});

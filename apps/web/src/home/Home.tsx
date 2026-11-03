@@ -28,6 +28,7 @@ import {
   MenuSeparator,
   MenuTrigger,
   Segmented,
+  Select,
   Skeleton,
 } from '@rnjb/ui';
 import { selectEntries, useService } from '../services/service-store.ts';
@@ -49,6 +50,7 @@ import { trashEntry, useDirtyDrafts } from '../app/trash.ts';
 import { FirstSteps } from './FirstSteps.tsx';
 import { OutlineMap } from './OutlineMap.tsx';
 import { formatAbsolute, formatRelative } from './format-date.ts';
+import { NO_FILTERS, filterOptions, matchesFilters, type EntryFilters } from './filters.ts';
 
 type OriginFilter = 'all' | EntryOrigin;
 
@@ -75,10 +77,17 @@ export function Home() {
   const show = useDialogs((state) => state.show);
   const [query, setQuery] = useState('');
   const [origin, setOrigin] = useState<OriginFilter>('all');
+  const [filters, setFilters] = useState<EntryFilters>(NO_FILTERS);
   const deferredQuery = useDeferredValue(query.trim());
+  const filtering = origin !== 'all' || filters !== NO_FILTERS;
+  const options = filterOptions(index?.entries ?? []);
+  const now = Date.now();
 
   const entries = (index?.entries ?? []).filter(
-    (entry) => (origin === 'all' || entry.origin === origin) && matches(entry, deferredQuery),
+    (entry) =>
+      (origin === 'all' || entry.origin === origin) &&
+      matchesFilters(entry, filters, now) &&
+      matches(entry, deferredQuery),
   );
   const byDate = [...entries].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
   // Copies of remote items live in the workspace and are listed with the rest; the remote
@@ -86,7 +95,7 @@ export function Home() {
   const journeys = byDate.filter((entry) => entry.kind === 'journey');
   const templates = byDate.filter((entry) => entry.kind === 'template');
   const recent =
-    deferredQuery || origin !== 'all' || journeys.length <= RECENT_COUNT
+    deferredQuery || filtering || journeys.length <= RECENT_COUNT
       ? []
       : journeys.slice(0, RECENT_COUNT);
   const hasWorkspace = Boolean(settings?.workspacePath);
@@ -195,6 +204,39 @@ export function Home() {
                   { value: 'remote', label: i18n.t('home.filters.remote') },
                 ]}
               />
+              <Select
+                aria-label={i18n.t('home.filters.library')}
+                value={filters.library}
+                onChange={(event) => setFilters({ ...filters, library: event.target.value })}
+              >
+                <option value="">{i18n.t('home.filters.anyLibrary')}</option>
+                {options.libraries.map((library) => (
+                  <option key={library} value={library}>
+                    {library}
+                  </option>
+                ))}
+              </Select>
+              <Select
+                aria-label={i18n.t('home.filters.profile')}
+                value={filters.profile}
+                onChange={(event) => setFilters({ ...filters, profile: event.target.value })}
+              >
+                <option value="">{i18n.t('home.filters.anyProfile')}</option>
+                {options.profiles.map((profile) => (
+                  <option key={profile} value={profile}>
+                    {profile}
+                  </option>
+                ))}
+              </Select>
+              <Select
+                aria-label={i18n.t('home.filters.date')}
+                value={String(filters.days)}
+                onChange={(event) => setFilters({ ...filters, days: Number(event.target.value) })}
+              >
+                <option value="0">{i18n.t('home.filters.anyDate')}</option>
+                <option value="7">{i18n.t('home.filters.week')}</option>
+                <option value="30">{i18n.t('home.filters.month')}</option>
+              </Select>
               <IconButton
                 label={i18n.t('home.actions.refresh')}
                 icon={

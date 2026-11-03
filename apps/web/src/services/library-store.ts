@@ -11,6 +11,8 @@ interface LibraryState {
   extracting: string | undefined;
   load: () => Promise<void>;
   extract: (pkg: string) => Promise<LibraryDiff>;
+  /** What a new extraction would change, without writing anything (§7.2). */
+  review: (pkg: string) => Promise<LibraryDiff>;
 }
 
 export const useLibraries = create<LibraryState>((set) => ({
@@ -38,6 +40,15 @@ export const useLibraries = create<LibraryState>((set) => ({
         ),
       }));
       return diff;
+    } finally {
+      set({ extracting: undefined });
+    }
+  },
+
+  review: async (pkg) => {
+    set({ extracting: pkg });
+    try {
+      return (await localService.extractLibrary(pkg, true)).diff;
     } finally {
       set({ extracting: undefined });
     }

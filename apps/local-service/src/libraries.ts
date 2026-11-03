@@ -1,7 +1,9 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { RnjbError } from '@rnjb/core';
-import { extractManifest, mergeManifest, type ManifestDiff } from '@rnjb/manifest-extractor';
+import { mergeManifest, type ManifestDiff } from '@rnjb/manifest-extractor';
+import { withBuiltInCuration } from '@rnjb/profiles';
+import { offThread } from './off-thread.ts';
 import {
   libraryPackSchema,
   teamConfigSchema,
@@ -69,7 +71,8 @@ export async function resolveSourceRoot(
 
 /**
  * Resolves the configured source of `pkg`, extracts its manifest (§7.1), merges it with the
- * stored pack so curated data survives (§7.2) and writes `packs/libraries/<id>.json`.
+ * stored pack so curated data survives (§7.2) and writes `packs/libraries/<id>.json`, unless
+ * it is a dry run.
  */
 export async function extractLibrary(
   pkg: string,
@@ -78,10 +81,15 @@ export async function extractLibrary(
     workspace: Workspace;
     browseRoot: string;
     cacheDir: string;
+    /** Report the diff without writing, so the team can accept or reject it first (§7.2). */
+    dryRun?: boolean;
   },
 ): Promise<ExtractionResult> {
   const root = await resolveSourceRoot(pkg, context);
-  const extracted = await extractManifest(root, { expectedPackage: pkg });
+  const extracted = await offThread('extractManifest', {
+    root,
+    options: { expectedPackage: pkg },
+  });
 
   const range = await readTeamRange(context.workspace, pkg);
   if (range && !semver.satisfies(extracted.packageVersion, range, { includePrerelease: true })) {
@@ -95,7 +103,10 @@ export async function extractLibrary(
     .then((text) => libraryPackSchema.safeParse(JSON.parse(text)))
     .catch(() => undefined);
   const previous = stored?.success ? stored.data : undefined;
-  const { components, diff } = mergeManifest(previous?.components ?? [], extracted.components);
+  const { components, diff } = mergeManifest(
+    previous?.components ?? [],
+    withBuiltInCuration(pkg, extracted.components),
+  );
 
   const pack: LibraryPack = {
     ...(previous ?? {}),
@@ -108,6 +119,7 @@ export async function extractLibrary(
     packageVersion: extracted.packageVersion,
     components,
   };
-  await context.workspace.write(relative, `${JSON.stringify(pack, null, 2)}\n`);
+  if (!context.dryRun)
+    await context.workspace.write(relative, `${JSON.stringify(pack, null, 2)}\n`);
   return { pack, diff };
 }

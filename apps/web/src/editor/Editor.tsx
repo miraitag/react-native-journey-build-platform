@@ -33,6 +33,7 @@ import {
   planNodeMove,
   type DraggedComponent,
 } from './insert-component.ts';
+import { nextSelection } from './selection.ts';
 
 const useMediaQuery = (query: string): boolean => {
   const [matches, setMatches] = useState(() => matchMedia(query).matches);
@@ -125,12 +126,12 @@ function LoadedEditor({ tab, document }: { tab: DocumentTab; document: RnjbDocum
     : undefined;
 
   const onView = (patch: Partial<ViewState>) => updateView(tab.id, patch);
-  const onSelect = (screenId: string, nodeId?: string) => {
+  const onSelect = (screenId: string, nodeId?: string, additive = false) => {
     const target = document.screens.find((candidate) => candidate.id === screenId);
     const sameScreen = screenId === view.selectedScreenId;
     onView({
       selectedScreenId: screenId,
-      selectedNodeId: nodeId,
+      ...nextSelection(view, screenId, nodeId, additive),
       stateId: sameScreen ? view.stateId : target?.states[0]?.id,
     });
   };
@@ -262,6 +263,7 @@ function LoadedEditor({ tab, document }: { tab: DocumentTab; document: RnjbDocum
                 onPanelChange={(leftPanel) => onView({ leftPanel })}
                 screen={screen}
                 selectedNodeId={view.selectedNodeId}
+                extraNodeIds={view.extraNodeIds}
                 onSelect={onSelect}
                 onRun={run}
                 onInsertComponent={onInsertComponent}
@@ -283,6 +285,7 @@ function LoadedEditor({ tab, document }: { tab: DocumentTab; document: RnjbDocum
                 document={document}
                 selectedScreenId={view.selectedScreenId}
                 selectedNodeId={view.selectedNodeId}
+                extraNodeIds={view.extraNodeIds}
                 onSelect={onSelect}
                 onMoveScreen={onMoveScreen}
                 previewTheme={view.previewTheme}

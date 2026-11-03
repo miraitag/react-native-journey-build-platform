@@ -1,7 +1,7 @@
 import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
 import reactHooks from 'eslint-plugin-react-hooks';
-import { readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 
 // Each workspace lints from its own folder; paths here are relative to this file.
@@ -16,6 +16,8 @@ const DOMAIN = ['packages/core', 'packages/document-schema', 'packages/pack-sche
  */
 const boundaries = ['apps', 'packages']
   .flatMap((dir) => readdirSync(path.join(root, dir)).map((name) => `${dir}/${name}`))
+  // Skips stray entries such as macOS `.DS_Store`.
+  .filter((workspace) => existsSync(path.join(root, workspace, 'package.json')))
   .map((workspace) => {
     const pkg = JSON.parse(readFileSync(path.join(root, workspace, 'package.json'), 'utf8'));
     const declared = Object.keys({ ...pkg.dependencies, ...pkg.devDependencies }).filter((name) =>

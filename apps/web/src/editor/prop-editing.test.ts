@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { literalToInput, parseLiteralInput } from './prop-editing.ts';
+import { literalToInput, orderPropNames, parseLiteralInput } from './prop-editing.ts';
 
 describe('parseLiteralInput', () => {
   it('parses numbers and rejects what is not one', () => {
@@ -21,5 +21,19 @@ describe('literalToInput', () => {
     expect(literalToInput({ type: 'literal', value: null })).toBe('');
     expect(literalToInput({ type: 'literal', value: 3 })).toBe('3');
     expect(literalToInput({ type: 'literal', value: false })).toBe('false');
+  });
+});
+
+describe('orderPropNames', () => {
+  it('puts set props first, then required ones, each group alphabetical', () => {
+    const set = new Set(['style', 'children']);
+    const required = new Set(['title']);
+    expect(
+      orderPropNames(
+        ['accessible', 'title', 'style', 'children', 'zIndex'],
+        (name) => set.has(name),
+        (name) => required.has(name),
+      ),
+    ).toEqual(['children', 'style', 'title', 'accessible', 'zIndex']);
   });
 });

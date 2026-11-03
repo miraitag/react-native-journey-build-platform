@@ -103,6 +103,18 @@ describe('libraries (§7.1)', () => {
     expect(again.json().pack.components[0].editableTextProps).toEqual(['label']);
   });
 
+  it('a dry run reports the diff without writing the pack (§7.2)', async () => {
+    await setup();
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/libraries/extract',
+      headers: authed,
+      payload: { package: '@acme/ui', dryRun: true },
+    });
+    expect(response.json().diff.addedComponents).toEqual(['Chip']);
+    await expect(fs.stat(path.join(workspace, 'packs/libraries/acme-ui.json'))).rejects.toThrow();
+  });
+
   it('rejects a version outside the team range (RNJB-103)', async () => {
     await setup('^3.0.0');
     const response = await extract();

@@ -12,3 +12,4 @@ export const profilePrefixes = (profile: ProfilePack): string[] =>
 
 export const canExport = (profile: ProfilePack): boolean => profile.codecs.length > 0;
 export { builtInDevicesPack } from './devices.builtin.ts';
+export { BUILT_IN_CURATION, withBuiltInCuration } from './curation.builtin.ts';

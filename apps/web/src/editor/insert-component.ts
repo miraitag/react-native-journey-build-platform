@@ -1,22 +1,29 @@
 import {
+  checkNesting,
   defaultPropsOf,
+  insertFragment,
   insertNode,
   moveNode,
   planMove,
   resolveInsertion,
+  wrapNodes,
   type Command,
+  type ComponentRef,
   type DocumentNode,
   type DropPosition,
   type InsertionTarget,
   type NestingInfo,
+  type NodeFragment,
   type Screen,
 } from '@rnjb/core';
 import type { LibraryPack } from '@rnjb/pack-schema';
 
-/** What is being dragged out of the catalog. */
+/** What is being dragged out of the catalog or the Blocks panel. */
 export interface DraggedComponent {
   package: string;
   component: string;
+  /** Set for a block: its nodes are copied with fresh ids; `package`/`component` are its root's. */
+  block?: NodeFragment;
 }
 
 function manifestOf(packs: readonly LibraryPack[], pkg: string, component: string) {
@@ -75,6 +82,11 @@ export function insertComponentCommand(
   targetNodeId: string | undefined,
   onCreated?: (nodeId: string) => void,
 ): Command | undefined {
+  if (item.block) {
+    return pasteCommand(screen, packs, item.block, targetNodeId, (ids) => {
+      if (ids[0]) onCreated?.(ids[0]);
+    });
+  }
   const target = planInsertion(screen, packs, item, targetNodeId);
   if (!target) return undefined;
   const found = manifestOf(packs, item.package, item.component);
@@ -122,4 +134,49 @@ export function moveNodeCommand(
 ): Command | undefined {
   const target = planNodeMove(screen, packs, nodeId, targetId, position);
   return target && moveNode(screen.id, nodeId, target.parentId, target.index);
+}
+
+/** Where a pasted fragment lands when the user points at `targetNodeId`; every root must fit there. */
+export function pasteCommand(
+  screen: Screen,
+  packs: readonly LibraryPack[],
+  fragment: NodeFragment,
+  targetNodeId: string | undefined,
+  onCreated?: (nodeIds: string[]) => void,
+): Command | undefined {
+  const infos = fragment.rootIds.map((id) => nodeInfo(packs, fragment.nodes[id]));
+  const target = resolveInsertion(screen, targetNodeId, infos[0], (id) =>
+    nodeInfo(packs, screen.nodes[id]),
+  );
+  if (!target) return undefined;
+  const parent = nodeInfo(packs, screen.nodes[target.parentId]);
+  if (!infos.every((info) => checkNesting(parent, info).ok)) return undefined;
+  return insertFragment(screen.id, target.parentId, target.index, fragment, onCreated);
+}
+
+/**
+ * Wraps sibling nodes in a `View` of the React Native pack (§10.3). `undefined` when the nesting
+ * rules forbid the container where the nodes are, or the nodes inside it.
+ */
+export function wrapCommand(
+  screen: Screen,
+  packs: readonly LibraryPack[],
+  rootIds: readonly string[],
+  onCreated?: (nodeId: string) => void,
+): Command | undefined {
+  const pack = packs.find((candidate) => candidate.package === 'react-native');
+  const container: ComponentRef = {
+    package: 'react-native',
+    component: 'View',
+    version: pack?.packageVersion ?? '*',
+  };
+  const info = nestingOf(packs, container.package, container.component) ?? { name: 'View' };
+  const parentId = Object.values(screen.nodes).find((node) =>
+    node.children.includes(rootIds[0] ?? ''),
+  )?.id;
+  const parent = parentId ? nodeInfo(packs, screen.nodes[parentId]) : undefined;
+  const fits =
+    checkNesting(parent, info).ok &&
+    rootIds.every((id) => checkNesting(info, nodeInfo(packs, screen.nodes[id])).ok);
+  return fits ? wrapNodes(screen.id, rootIds, container, onCreated) : undefined;
 }

@@ -103,3 +103,41 @@ describe('importRepository', () => {
     ).rejects.toMatchObject({ code: 'RNJB-404' });
   });
 });
+
+describe('importRepository review and provenance (§17.2, §17.5, §8)', () => {
+  it('a dry run reports without writing, and an unknown profile is refused', async () => {
+    const repo = await exportedRepo();
+    const workspace = new Workspace(path.join(tmp, 'ws'));
+    await workspace.ensureStructure();
+    const input = { name: 'Pagos', slug: 'pagos-revision' };
+
+    const review = await importRepository(repo, { ...input, dryRun: true }, workspace);
+    expect(review).toMatchObject({ written: false, used: 'feature-library' });
+    expect(review.profiles.map((profile) => profile.id)).toContain('feature-library');
+    await expect(workspace.read(review.path)).rejects.toThrow();
+
+    await expect(
+      importRepository(repo, { ...input, profileId: 'nope' }, workspace),
+    ).rejects.toMatchObject({ code: 'RNJB-405' });
+  });
+
+  it('records the remote and commit of a git repository, never its local path', async () => {
+    const repo = await exportedRepo();
+    const { git } = await import('./source-fetch.ts');
+    await git(['init', '-q'], repo);
+    await git(['-c', 'user.email=t@t', '-c', 'user.name=t', 'add', '.'], repo);
+    await git(['-c', 'user.email=t@t', '-c', 'user.name=t', 'commit', '-qm', 'init'], repo);
+    await git(['remote', 'add', 'origin', 'https://example.com/team/pagos.git'], repo);
+    const head = (await git(['rev-parse', 'HEAD'], repo)).trim();
+
+    const workspace = new Workspace(path.join(tmp, 'ws'));
+    await workspace.ensureStructure();
+    const result = await importRepository(repo, { name: 'Pagos', slug: 'pagos-git' }, workspace);
+    const saved = await openRnjb(await workspace.read(result.path));
+    expect(saved.ok && saved.document.provenance?.importedFrom).toEqual({
+      repository: 'https://example.com/team/pagos.git',
+      commit: head,
+      profile: { id: 'feature-library', version: defaultProfile.version },
+    });
+  });
+});
