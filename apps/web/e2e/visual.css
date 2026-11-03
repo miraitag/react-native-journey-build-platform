@@ -1,0 +1,10 @@
+/*
+ * Visual checks compare shapes and colours, not glyphs (§23.8): each OS rasterizes text its own
+ * way, so one baseline serves macOS, Windows and Linux. Text is covered by the a11y and unit tests.
+ */
+* {
+  color: transparent !important;
+  -webkit-text-fill-color: transparent !important;
+  caret-color: transparent !important;
+  text-shadow: none !important;
+}

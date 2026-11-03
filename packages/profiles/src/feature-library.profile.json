@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "kind": "profile",
+  "id": "feature-library",
+  "name": "Feature library",
+  "version": "1.0.0",
+  "description": "Perfil por defecto: feature library de React Native con Clean Architecture, según las skills de arquitectura y calidad.",
+  "conventions": {
+    "folders": {
+      "public": "src/public",
+      "coreResult": "src/core/domain/result",
+      "coreError": "src/core/domain/error",
+      "domain": "src/private/domain",
+      "data": "src/private/data",
+      "contexts": "src/private/presentation/contexts",
+      "navigation": "src/private/presentation/navigation",
+      "screens": "src/private/presentation/screens",
+      "values": "src/private/values",
+      "schemas": "src/private/presentation/schemas"
+    },
+    "fileSuffixes": {
+      "screen": ".screen.tsx",
+      "viewModel": ".view-model.ts",
+      "uiState": ".ui-state.ts",
+      "schema": ".schema.ts",
+      "props": ".props.ts",
+      "model": ".model.ts",
+      "domainModel": ".domain-model.ts"
+    },
+    "fileNameCase": "kebab",
+    "nameTemplates": {
+      "file": "journeys/{slug}/{slug}.rnjb",
+      "folder": "react-native-{slug}",
+      "package": "react-native-{slug}",
+      "component": "{Pascal}",
+      "navigator": "{Pascal}Navigator",
+      "context": "{Pascal}Context",
+      "params": "{Pascal}Params",
+      "props": "{Pascal}Props"
+    },
+    "valuesLocation": "src/private/values",
+    "formPattern": "react-hook-form+yup",
+    "validationMode": "onTouched",
+    "initialStates": ["loading", "success", "error", "empty"],
+    "packageJson": {
+      "library": {
+        "dependencies": {},
+        "devDependencies": {},
+        "peerDependencies": {},
+        "packageManager": "pnpm@11.2.2",
+        "npmrc": ["minimumReleaseAge=1440", "blockExoticSubdeps=true"]
+      },
+      "example": {
+        "dependencies": {}
+      }
+    },
+    "checks": [
+      {
+        "id": "skills-architecture",
+        "command": ["node", "{skills}/*architecture*/scripts/scan.mjs", "--scope=full"],
+        "description": "Skills: arquitectura",
+        "failsWhen": "^IMPACT\\s+HITS"
+      },
+      {
+        "id": "skills-code-quality",
+        "command": ["node", "{skills}/*quality*/scripts/scan.mjs", "--scope=full"],
+        "description": "Skills: calidad de código",
+        "failsWhen": "^IMPACT\\s+HITS"
+      },
+      {
+        "id": "tsc",
+        "command": ["pnpm", "exec", "tsc", "--noEmit"],
+        "description": "Typecheck"
+      },
+      {
+        "id": "eslint",
+        "command": ["pnpm", "exec", "eslint", "."],
+        "description": "Lint"
+      }
+    ]
+  },
+  "codecs": [
+    "public",
+    "core",
+    "domain",
+    "data",
+    "values",
+    "screen",
+    "view-model",
+    "ui-state",
+    "schema",
+    "model",
+    "navigator",
+    "package"
+  ]
+}

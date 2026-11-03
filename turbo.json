@@ -1,0 +1,36 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "globalDependencies": ["tsconfig.base.json", "eslint.config.js"],
+  "tasks": {
+    "transit": {
+      "dependsOn": ["^transit"]
+    },
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**"]
+    },
+    "typecheck": {
+      "dependsOn": ["^typecheck"],
+      "outputs": []
+    },
+    "lint": {
+      "outputs": []
+    },
+    "//#lint:root": {
+      "inputs": ["scripts/**", "*.{js,ts}"],
+      "outputs": []
+    },
+    "test": {
+      "dependsOn": ["transit"],
+      "outputs": []
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "test:perf": {
+      "dependsOn": ["build"],
+      "cache": false
+    }
+  }
+}

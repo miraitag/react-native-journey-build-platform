@@ -1,0 +1,24 @@
+{
+  "name": "@rnjb/codegen",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./zip": "./src/zip.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "lint": "eslint .",
+    "test": "vitest run --dir src"
+  },
+  "dependencies": {
+    "@rnjb/core": "workspace:*",
+    "@rnjb/pack-schema": "workspace:*",
+    "@rnjb/ts-analysis": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "@rnjb/profiles": "workspace:*"
+  }
+}

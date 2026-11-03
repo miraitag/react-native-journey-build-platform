@@ -1,0 +1,32 @@
+{
+  "name": "@rnjb/ui",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./styles.css": "./src/styles/index.css",
+    "./tokens": "./src/tokens/index.ts"
+  },
+  "scripts": {
+    "tokens": "tsx scripts/build-tokens.ts",
+    "typecheck": "tsc -p tsconfig.json",
+    "lint": "eslint .",
+    "test": "vitest run --dir src"
+  },
+  "peerDependencies": {
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "dependencies": {
+    "lucide-react": "^1.64.0",
+    "radix-ui": "^1.8.1",
+    "sonner": "^2.0.8"
+  },
+  "devDependencies": {
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  }
+}

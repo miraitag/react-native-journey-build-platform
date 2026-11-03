@@ -1,0 +1,191 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`export snapshots per template (§23.4) > Journey básico 1`] = `
+{
+  ".npmrc": "minimumReleaseAge=1440
+blockExoticSubdeps=true
+",
+  "package.json": "{
+  "name": "react-native-journey-basico",
+  "version": "0.1.0",
+  "main": "src/index.tsx",
+  "packageManager": "pnpm@11.2.2",
+  "dependencies": {},
+  "devDependencies": {},
+  "peerDependencies": {
+    "@react-navigation/native": "*",
+    "@react-navigation/native-stack": "*",
+    "react": "*",
+    "react-native": "*"
+  }
+}
+",
+  "src/core/domain/error/service-error.ts": "export class ServiceError extends Error {
+  constructor(
+    readonly code: string,
+    message?: string,
+  ) {
+    super(message ?? code);
+  }
+}
+",
+  "src/core/domain/result/result.ts": "import type { ServiceError } from '../error/service-error';
+
+export type Result<T, E = ServiceError> = { error: E; ok: false } | { ok: true; value: T };
+
+export const Result = {
+  failure: <E>(error: E): Result<never, E> => ({ error, ok: false }),
+  success: <T>(value: T): Result<T, never> => ({ ok: true, value }),
+};
+",
+  "src/index.tsx": "export * from './public';
+",
+  "src/private/presentation/navigation/journey-basico.navigator.tsx": "import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { InicioScreen } from '../screens/inicio/inicio.screen';
+import { DetalleScreen } from '../screens/detalle/detalle.screen';
+import { ResultadoScreen } from '../screens/resultado/resultado.screen';
+
+export type JourneyBasicoParams = {
+  Detalle: undefined;
+  Inicio: undefined;
+  Resultado: undefined;
+};
+
+const Stack = createNativeStackNavigator<JourneyBasicoParams>();
+
+export function JourneyBasicoNavigator() {
+  return (
+    <Stack.Navigator initialRouteName='Inicio'>
+      <Stack.Screen name='Inicio' component={InicioScreen} />
+      <Stack.Screen name='Detalle' component={DetalleScreen} />
+      <Stack.Screen name='Resultado' component={ResultadoScreen} />
+    </Stack.Navigator>
+  );
+}
+",
+  "src/private/presentation/screens/detalle/detalle.screen.tsx": "import { useDetalleScreenViewModel } from './detalle.view-model';
+import { StyleSheet, View } from 'react-native';
+
+export function DetalleScreen() {
+  useDetalleScreenViewModel();
+
+  return (
+    <View style={styles.view} />
+  );
+}
+
+const styles = StyleSheet.create({
+  view: { flex: 1 },
+});
+",
+  "src/private/presentation/screens/detalle/detalle.ui-state.ts": "export type DetalleUiStatus = 'loading' | 'success' | 'error' | 'empty';
+
+export interface DetalleUiState {
+  status: DetalleUiStatus;
+}
+",
+  "src/private/presentation/screens/detalle/detalle.view-model.ts": "import { useNavigation } from '@react-navigation/native';
+import { useState } from 'react';
+import type { JourneyBasicoParams } from '../../navigation/journey-basico.navigator';
+import type { DetalleUiState } from './detalle.ui-state';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+
+export function useDetalleScreenViewModel() {
+  const navigation = useNavigation<NativeStackNavigationProp<JourneyBasicoParams>>();
+  const [uiState] = useState<DetalleUiState>({ status: 'loading' });
+  const handlers = {
+    goToResultado: () => navigation.navigate('Resultado'),
+  };
+
+  return { handlers, uiState };
+}
+",
+  "src/private/presentation/screens/inicio/inicio.screen.tsx": "import { useInicioScreenViewModel } from './inicio.view-model';
+import { StyleSheet, View } from 'react-native';
+
+export function InicioScreen() {
+  useInicioScreenViewModel();
+
+  return (
+    <View style={styles.view} />
+  );
+}
+
+const styles = StyleSheet.create({
+  view: { flex: 1 },
+});
+",
+  "src/private/presentation/screens/inicio/inicio.ui-state.ts": "export type InicioUiStatus = 'loading' | 'success' | 'error' | 'empty';
+
+export interface InicioUiState {
+  status: InicioUiStatus;
+}
+",
+  "src/private/presentation/screens/inicio/inicio.view-model.ts": "import { useNavigation } from '@react-navigation/native';
+import { useState } from 'react';
+import type { JourneyBasicoParams } from '../../navigation/journey-basico.navigator';
+import type { InicioUiState } from './inicio.ui-state';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+
+export function useInicioScreenViewModel() {
+  const navigation = useNavigation<NativeStackNavigationProp<JourneyBasicoParams>>();
+  const [uiState] = useState<InicioUiState>({ status: 'loading' });
+  const handlers = {
+    goToDetalle: () => navigation.navigate('Detalle'),
+  };
+
+  return { handlers, uiState };
+}
+",
+  "src/private/presentation/screens/resultado/resultado.screen.tsx": "import { useResultadoScreenViewModel } from './resultado.view-model';
+import { StyleSheet, View } from 'react-native';
+
+export function ResultadoScreen() {
+  useResultadoScreenViewModel();
+
+  return (
+    <View style={styles.view} />
+  );
+}
+
+const styles = StyleSheet.create({
+  view: { flex: 1 },
+});
+",
+  "src/private/presentation/screens/resultado/resultado.ui-state.ts": "export type ResultadoUiStatus = 'loading' | 'success' | 'error' | 'empty';
+
+export interface ResultadoUiState {
+  status: ResultadoUiStatus;
+}
+",
+  "src/private/presentation/screens/resultado/resultado.view-model.ts": "import { useState } from 'react';
+import type { ResultadoUiState } from './resultado.ui-state';
+
+export function useResultadoScreenViewModel() {
+  const [uiState] = useState<ResultadoUiState>({ status: 'loading' });
+  const handlers = {
+
+  };
+
+  return { handlers, uiState };
+}
+",
+  "src/private/values/strings.ts": "export const strings = {} as const;
+",
+  "src/private/values/tokens.ts": "// Token names used by the journey. Fill in the values from the design system.
+export const tokens = {} as const;
+",
+  "src/public/JourneyBasico.tsx": "import { JourneyBasicoNavigator } from '../private/presentation/navigation/journey-basico.navigator';
+
+export function JourneyBasico() {
+  return <JourneyBasicoNavigator />;
+}
+",
+  "src/public/index.ts": "export { JourneyBasico } from './JourneyBasico';
+export type { JourneyBasicoProps } from './journey-basico-props';
+",
+  "src/public/journey-basico-props.ts": "/** What the host app passes to JourneyBasico. */
+export type JourneyBasicoProps = Record<string, never>;
+",
+}
+`;

@@ -1,0 +1,173 @@
+@import 'tailwindcss';
+@import './tokens.css';
+
+@source '..';
+
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
+@theme {
+  --color-*: initial;
+  --font-*: initial;
+  --text-*: initial;
+  --radius-*: initial;
+  --shadow-*: initial;
+
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono Variable', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  --text-2xs: 11px;
+  --text-2xs--line-height: 16px;
+  --text-xs: 12px;
+  --text-xs--line-height: 16px;
+  --text-sm: 13px;
+  --text-sm--line-height: 20px;
+  --text-base: 14px;
+  --text-base--line-height: 20px;
+  --text-md: 16px;
+  --text-md--line-height: 24px;
+  --text-lg: 20px;
+  --text-lg--line-height: 28px;
+
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-full: 9999px;
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@theme inline {
+  --color-transparent: transparent;
+  --color-current: currentColor;
+  --color-canvas: var(--canvas);
+  --color-chrome: var(--chrome);
+  --color-panel: var(--panel);
+  --color-raised: var(--raised);
+  --color-input: var(--input);
+  --color-hover: var(--hover);
+  --color-active: var(--active);
+  --color-line-subtle: var(--line-subtle);
+  --color-line: var(--line);
+  --color-line-control: var(--line-control);
+  --color-fg: var(--fg);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-subtle: var(--fg-subtle);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-fg: var(--accent-fg);
+  --color-accent-subtle: var(--accent-subtle);
+  --color-accent-muted: var(--accent-muted);
+  --color-accent-line: var(--accent-line);
+  --color-on-accent: var(--on-accent);
+  --color-on-warning: var(--on-warning);
+  --color-focus: var(--focus);
+  --color-success: var(--success);
+  --color-success-fg: var(--success-fg);
+  --color-success-subtle: var(--success-subtle);
+  --color-success-line: var(--success-line);
+  --color-warning: var(--warning);
+  --color-warning-fg: var(--warning-fg);
+  --color-warning-subtle: var(--warning-subtle);
+  --color-warning-line: var(--warning-line);
+  --color-danger: var(--danger);
+  --color-danger-fg: var(--danger-fg);
+  --color-danger-subtle: var(--danger-subtle);
+  --color-danger-line: var(--danger-line);
+  --color-info: var(--info);
+  --color-info-fg: var(--info-fg);
+  --color-info-subtle: var(--info-subtle);
+  --color-info-line: var(--info-line);
+
+  --shadow-popover: var(--shadow-popover);
+  --shadow-frame: var(--shadow-frame);
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    margin: 0;
+    font-family: var(--font-sans);
+    font-size: var(--text-sm);
+    line-height: var(--text-sm--line-height);
+    color: var(--fg);
+    background: var(--chrome);
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    caret-color: var(--accent);
+  }
+
+  ::selection {
+    background: var(--accent-muted);
+    color: var(--fg);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 1px;
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--line) transparent;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--fg-subtle);
+  }
+
+  code,
+  kbd,
+  samp,
+  pre {
+    font-family: var(--font-mono);
+    font-variant-ligatures: none;
+  }
+
+  button {
+    cursor: default;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer utilities {
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.985);
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}

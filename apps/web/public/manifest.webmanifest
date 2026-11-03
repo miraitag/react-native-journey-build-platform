@@ -1,0 +1,27 @@
+{
+  "name": "RN Journey Builder",
+  "short_name": "Journey Builder",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f0f1f4",
+  "theme_color": "#f0f1f4",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "file_handlers": [
+    {
+      "action": "/",
+      "accept": {
+        "application/json": [".rnjb"]
+      },
+      "launch_type": "multiple-clients"
+    }
+  ]
+}

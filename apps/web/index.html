@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="es" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
+    <title>RN Journey Builder</title>
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+    <script>
+      // Apply the theme before first paint to avoid a flash (system by default, §10.1).
+      (function () {
+        var pref = localStorage.getItem('rnjb.theme') || 'system';
+        var dark =
+          pref === 'dark' ||
+          (pref === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
+        document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+        var locale = localStorage.getItem('rnjb.locale');
+        if (locale === 'en' || locale === 'es') document.documentElement.lang = locale;
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

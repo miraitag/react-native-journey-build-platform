@@ -1,0 +1,31 @@
+{
+  "name": "@rnjb/local-service",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "start": "tsx src/main.ts",
+    "typecheck": "tsc -p tsconfig.json",
+    "lint": "eslint .",
+    "test": "vitest run --dir src"
+  },
+  "dependencies": {
+    "@rnjb/codegen": "workspace:*",
+    "@rnjb/core": "workspace:*",
+    "@rnjb/document-schema": "workspace:*",
+    "@rnjb/manifest-extractor": "workspace:*",
+    "@rnjb/pack-schema": "workspace:*",
+    "@rnjb/profiles": "workspace:*",
+    "fastify": "^5.12.7",
+    "prettier": "^3.9.10",
+    "semver": "^7.8.5",
+    "vite": "^8.3.5",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "@types/semver": "^7.8.0",
+    "tsx": "^4.23.15"
+  }
+}

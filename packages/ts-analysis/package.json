@@ -1,0 +1,19 @@
+{
+  "name": "@rnjb/ts-analysis",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "typescript": "npm:@typescript/typescript6@^6.0.2"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6"
+  }
+}
