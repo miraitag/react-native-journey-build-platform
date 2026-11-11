@@ -1,10 +1,11 @@
 import { useRef, type KeyboardEvent } from 'react';
-import { House, X } from 'lucide-react';
-import { Badge, cx } from '@rnjb/ui';
+import { CircleHelp, House, Keyboard, Search, Settings, Sparkles, X } from 'lucide-react';
+import { Badge, Menu, MenuContent, MenuItem, MenuTrigger, cx } from '@rnjb/ui';
 import { useT } from './preferences.ts';
 import { HOME_TAB, isFileDirty, useTabs } from './tabs-store.ts';
 import { closeTab } from './persistence.ts';
-import { MOD } from './dialogs-store.ts';
+import { MOD, useDialogs } from './dialogs-store.ts';
+import { useOnboarding } from './onboarding.ts';
 
 /** Document tabs (§5.1): Inicio is pinned; arrow keys move between tabs, Delete closes one. */
 export function TabBar() {
@@ -46,6 +47,7 @@ export function TabBar() {
       <div
         ref={listRef}
         role="tablist"
+        data-tour="tabs"
         aria-label={i18n.t('tabs.label')}
         onKeyDown={onKeyDown}
         className="flex min-w-0 flex-1 items-stretch overflow-x-auto [scrollbar-width:none]"
@@ -106,6 +108,59 @@ export function TabBar() {
           );
         })}
       </div>
+      <AppActions />
+    </div>
+  );
+}
+
+/**
+ * Always-visible app actions at the top right, as in design tools: search/commands, help (with
+ * the welcome and tour) and settings. Everything here also has a shortcut, shown alongside.
+ */
+function AppActions() {
+  const i18n = useT();
+  const show = useDialogs((state) => state.show);
+  const button =
+    'inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-xs text-fg-muted hover:bg-hover hover:text-fg data-[state=open]:bg-active data-[state=open]:text-fg';
+  return (
+    <div
+      data-tour="app"
+      className="flex shrink-0 items-center gap-1 border-l border-line-subtle px-2"
+    >
+      <button
+        type="button"
+        onClick={() => show('palette')}
+        className="inline-flex h-7 w-56 items-center gap-2 rounded-md border border-line-subtle bg-panel px-2 text-xs text-fg-subtle hover:border-line hover:text-fg-muted max-lg:w-auto"
+      >
+        <Search size={13} aria-hidden className="shrink-0" />
+        <span className="flex-1 truncate text-left max-lg:sr-only">{i18n.t('tabs.search')}</span>
+        <kbd className="font-sans text-2xs text-fg-subtle max-lg:hidden">{MOD} K</kbd>
+      </button>
+      <Menu>
+        <MenuTrigger asChild>
+          <button type="button" className={button}>
+            <CircleHelp size={14} aria-hidden />
+            {i18n.t('tabs.help')}
+          </button>
+        </MenuTrigger>
+        <MenuContent align="end">
+          <MenuItem icon={<Sparkles size={14} />} onSelect={useOnboarding.getState().replay}>
+            {i18n.t('onboarding.replay')}
+          </MenuItem>
+          <MenuItem icon={<Keyboard size={14} />} shortcut="?" onSelect={() => show('shortcuts')}>
+            {i18n.t('palette.shortcuts')}
+          </MenuItem>
+        </MenuContent>
+      </Menu>
+      <button
+        type="button"
+        aria-label={i18n.t('home.actions.settings')}
+        title={`${i18n.t('home.actions.settings')} (${MOD} ,)`}
+        onClick={() => show('settings')}
+        className={cx(button, 'w-7 justify-center px-0')}
+      >
+        <Settings size={14} aria-hidden />
+      </button>
     </div>
   );
 }

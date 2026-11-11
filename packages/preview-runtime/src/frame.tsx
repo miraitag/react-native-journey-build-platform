@@ -118,10 +118,78 @@ const BUILT_IN: Libraries = new Map([
   ['react-native', ReactNativeWeb as unknown as Record<string, unknown>],
 ]);
 
+/** Whether something under `target` can still scroll in the wheel's direction. */
+function canScroll(target: EventTarget | null, deltaX: number, deltaY: number): boolean {
+  for (
+    let element = target instanceof Element ? target : null;
+    element;
+    element = element.parentElement
+  ) {
+    const style = getComputedStyle(element);
+    const y = /(auto|scroll)/.test(style.overflowY) && element.scrollHeight > element.clientHeight;
+    const x = /(auto|scroll)/.test(style.overflowX) && element.scrollWidth > element.clientWidth;
+    if (y && deltaY > 0 && element.scrollTop + element.clientHeight < element.scrollHeight - 1)
+      return true;
+    if (y && deltaY < 0 && element.scrollTop > 0) return true;
+    if (x && deltaX > 0 && element.scrollLeft + element.clientWidth < element.scrollWidth - 1)
+      return true;
+    if (x && deltaX < 0 && element.scrollLeft > 0) return true;
+  }
+  return false;
+}
+
+/**
+ * The editor pans and zooms its canvas with the wheel and the trackpad. Over the screen the
+ * frame keeps the wheel only while its own content scrolls (§11.8); a pinch always goes out.
+ */
+function forwardWheel(event: WheelEvent) {
+  const zoom = event.ctrlKey || event.metaKey;
+  if (!zoom && canScroll(event.target, event.deltaX, event.deltaY)) return;
+  event.preventDefault();
+  const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? window.innerHeight : 1;
+  post({
+    type: 'rnjb:wheel',
+    deltaX: event.deltaX * unit,
+    deltaY: event.deltaY * unit,
+    zoom,
+    x: event.clientX,
+    y: event.clientY,
+  });
+}
+
+// Safari reports a trackpad pinch as gesture events, not ctrl + wheel: each change goes out as the
+// wheel delta that zooms the canvas by the same ratio (the canvas zooms by exp(-deltaY / 100)).
+let gestureScale = 1;
+function forwardGesture(event: Event) {
+  event.preventDefault();
+  const gesture = event as Event & { scale: number; clientX: number; clientY: number };
+  if (event.type === 'gesturechange' && gesture.scale > 0) {
+    post({
+      type: 'rnjb:wheel',
+      deltaX: 0,
+      deltaY: -Math.log(gesture.scale / gestureScale) * 100,
+      zoom: true,
+      x: gesture.clientX,
+      y: gesture.clientY,
+    });
+  }
+  gestureScale = event.type === 'gesturechange' ? gesture.scale : 1;
+}
+const GESTURES = ['gesturestart', 'gesturechange', 'gestureend'];
+
 function Frame() {
   const [state, setState] = useState<RenderMessage | undefined>();
   const [libraries, setLibraries] = useState<Libraries>(BUILT_IN);
   const rootRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    window.addEventListener('wheel', forwardWheel, { passive: false });
+    for (const type of GESTURES) window.addEventListener(type, forwardGesture);
+    return () => {
+      window.removeEventListener('wheel', forwardWheel);
+      for (const type of GESTURES) window.removeEventListener(type, forwardGesture);
+    };
+  }, []);
 
   useLayoutEffect(() => {
     const onMessage = (event: MessageEvent) => {

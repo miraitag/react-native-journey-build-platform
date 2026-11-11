@@ -4,6 +4,8 @@ export const en: Messages = {
   app: { name: 'RN Journey Builder' },
   common: { close: 'Close', cancel: 'Cancel', retry: 'Retry', loading: 'Loading…' },
   tabs: {
+    help: 'Help',
+    search: 'Search or run…',
     label: 'Open tabs',
     home: 'Home',
     template: 'Template',
@@ -22,6 +24,7 @@ export const en: Messages = {
     actions: {
       create: 'Create journey',
       openFile: 'Open file',
+      openFolder: 'Open folder',
       chooseWorkspace: 'Choose workspace',
       refresh: 'Refresh index',
       settings: 'Settings',
@@ -59,10 +62,13 @@ export const en: Messages = {
       discard: 'Discard',
       discarded: 'Draft of “{name}” discarded',
     },
+    folder: {
+      title: '{name}: {count} .rnjb files',
+    },
     empty: {
       noServiceTitle: 'The local service is not running',
       noServiceBody:
-        'Without it the workspace cannot be read. Start it with “pnpm dev” from the repository root, or open a standalone .rnjb file.',
+        'Without it the workspace cannot be read. Start it with “pnpm dev” from the repository root, or open a standalone .rnjb file or, in Chrome and Edge, the workspace folder.',
       noWorkspaceTitle: 'Choose a workspace',
       noWorkspaceBody:
         'The folder where your journeys, templates and packs live. Your team may version it in git.',
@@ -163,6 +169,12 @@ export const en: Messages = {
       trash: 'Trash',
     },
     catalog: {
+      viewLabel: 'Group the catalog',
+      byLibrary: 'Library',
+      byCategory: 'Category',
+      versionMismatch: 'The document uses version {version}; the catalog, {catalog}.',
+      variants: 'Variants of {name}',
+      addVariant: 'Add {name} ({variant}) to the screen',
       reviewTitle: 'Changes in {package}',
       reviewBody:
         'The new extraction changes the manifest. What the team curated is kept. Nothing is saved until you accept.',
@@ -191,6 +203,9 @@ export const en: Messages = {
       copied: 'Nodes copied: {count}',
     },
     blocks: {
+      selected: '{count} nodes ready to save. Shift+click adds or removes nodes.',
+      rootOnly:
+        "You selected the screen's root, which isn't saved as a block. Select nodes inside it in Layers or on the canvas.",
       name: 'Block name',
       save: 'Save as block',
       saved: 'Block “{name}” saved',
@@ -211,6 +226,13 @@ export const en: Messages = {
       code: 'Code block',
     },
     screens: {
+      flow: 'Screen flow',
+      via: 'from {trigger}',
+      reference: 'Another navigation leads to “{screen}” (shown higher in the tree)',
+      nestUnder: 'Nest under “{screen}”',
+      unnest: 'Move out of “{screen}”',
+      flowHint:
+        'Drag a screen onto another to nest it; between rows, move left to take it out a level.',
       initial: 'Initial',
       nodes: '{count} nodes',
       actions: '{screen} actions',
@@ -309,8 +331,30 @@ export const en: Messages = {
       emptyTitle: 'Trash is empty',
       emptyBody: 'Deleted items stay here for {hours} h before being purged.',
     },
-    compare: { region: 'Device comparison' },
+    compare: {
+      region: 'Device comparison',
+      title: 'Compare “{name}”',
+      add: 'Add device…',
+      remove: 'Remove {name} from the comparison',
+      hint: 'Same scale for all · the main one updates instantly',
+      close: 'Close (Esc)',
+    },
+    prototype: {
+      step: 'Step {n}',
+      fullscreen: 'Full screen',
+      exitFullscreen: 'Exit full screen',
+      label: 'Prototype controls',
+      hintTriggers: 'Click a highlighted element to navigate.',
+      hintButtons: 'This screen navigates without a trigger: use the buttons to continue.',
+      hintNone:
+        'This screen leads nowhere. Select an element and add a navigation in Inspector › Navigation.',
+      back: 'Back',
+      restart: 'Restart',
+      exit: 'Exit (Esc)',
+    },
     board: {
+      flow: 'Flow',
+      flowHint: 'Show the flow: navigations and the element each one starts from (⇧F)',
       label: 'Journey canvas',
       zoomIn: 'Zoom in',
       zoomOut: 'Zoom out',
@@ -390,9 +434,7 @@ export const en: Messages = {
       landscape: 'Landscape',
       posture: 'Posture',
       postureClosed: 'Closed',
-      compare: 'Compare with other devices',
-      compareNone: 'Compare…',
-      compareCount: 'Comparing {count}',
+      compare: 'Compare',
       chromeFamily: 'System style: {family}',
       noChromeStyle: 'No system style for this version',
       os: 'OS version',
@@ -527,6 +569,100 @@ export const en: Messages = {
     choose: 'Choose this folder',
     empty: 'This folder has no subfolders.',
   },
+  onboarding: {
+    label: 'Welcome',
+    skip: 'Skip',
+    back: 'Back',
+    next: 'Next',
+    start: 'Get started',
+    done: 'Done',
+    step: '{n} of {total}',
+    replay: 'Show the welcome and tour again',
+    welcome: {
+      introTitle: 'Welcome to RN Journey Builder',
+      introBody:
+        'Design React Native journeys screen by screen, with real components from your libraries, and export them as code.',
+      flowTitle: 'Screens and flow',
+      flowBody:
+        'Every screen lives on the canvas. Connect them with navigations and arrange them as a tree in the Screens panel.',
+      buildTitle: 'Build with components',
+      buildBody:
+        'Drag components from the Catalog onto a screen, order them in Layers and tune their props in the Inspector.',
+      prototypeTitle: 'Try the journey',
+      prototypeBody:
+        'Prototype mode hides the editor and lets you walk the journey the way someone using the app would.',
+      exportTitle: 'Share and export',
+      exportBody:
+        'Once the journey has no problems, export it as code ready for your project. Let us show you around.',
+    },
+    tour: {
+      section: {
+        app: 'App',
+        top: 'Editor bar',
+        left: 'Journey panel',
+        canvas: 'Canvas',
+        right: 'Inspector',
+      },
+      tabsTitle: 'Tabs',
+      tabsBody:
+        'Home and every open journey in its own tab. Ctrl/⌘ 1–9 switches tabs; the blue dot marks unsaved changes.',
+      appTitle: 'Search, Help and Settings',
+      appBody:
+        'Find journeys or run any command (Ctrl/⌘ K), replay this tour from Help and open the settings.',
+      journeyTitle: 'Journey name',
+      journeyBody: 'Show or hide the left panel. Double-click the name to rename the journey.',
+      historyTitle: 'Undo and redo',
+      historyBody: 'Every change is a step you can undo (Ctrl/⌘ Z) or redo (Ctrl/⌘ ⇧ Z).',
+      deviceTitle: 'Device',
+      deviceBody:
+        'Pick the device, its OS version, the orientation and, on foldables, the posture. “Compare” shows the screen on several devices at once.',
+      previewTitle: 'State and theme',
+      previewBody:
+        'Switch the screen state (loading, error, success…), edit the states and toggle the preview between light and dark.',
+      healthTitle: 'Saving and problems',
+      healthBody:
+        'Shows whether the file is saved. The counter opens Problems: errors and warnings that block export (Ctrl/⌘ ⇧ M).',
+      filesTitle: 'Template, import and export',
+      filesBody:
+        'Save the journey as a template, import screens and export the code once there are no errors.',
+      catalogTitle: 'Catalog',
+      catalogBody:
+        'The components in your libraries. Drag them onto the canvas or use “Add to screen”.',
+      blocksTitle: 'Blocks',
+      blocksBody:
+        'Saved groups of nodes to reuse. Select nodes with Shift+click and save them as a block.',
+      layersTitle: 'Layers',
+      layersBody:
+        "The selected screen's tree. Drag to reorder or nest; Shift+click selects several.",
+      screensTitle: 'Screens',
+      screensBody:
+        'The flow as a tree: create, rename, duplicate and set the initial screen. Drag one onto another to nest it.',
+      formsTitle: 'Forms',
+      formsBody:
+        "The screen's forms: their fields, types, rules (required, min, max) and validation mode.",
+      logicTitle: 'Logic',
+      logicBody:
+        "The screen's hooks, their versions, dependencies and bindings. Added from the workspace's hook packs.",
+      dataTitle: 'Data',
+      dataBody:
+        "The journey's domain models and gateway methods (HTTP method, path, input and output models).",
+      trashTitle: 'Trash',
+      trashBody:
+        'What you delete stays here a few hours before it is purged, so you can restore it.',
+      canvasTitle: 'Canvas',
+      canvasBody:
+        'Every screen with its real preview. Space + drag to move around; pinch or Ctrl/⌘ + wheel to zoom.',
+      modesTitle: 'Prototype, Focus and Flow',
+      modesBody:
+        'Walk the journey as a user, focus on one screen or show the navigation arrows (⇧F).',
+      zoomTitle: 'Zoom',
+      zoomBody: 'Zoom out, zoom in, back to 100% or fit every screen (⇧1).',
+      inspectorTitle: 'Inspector',
+      inspectorBody: 'Props, styles and navigations of the selected node.',
+      statusbarTitle: 'Status bar',
+      statusbarBody: 'The local service connection, the workspace and the state of your libraries.',
+    },
+  },
   palette: {
     label: 'Command palette',
     placeholder: 'Type a command or search a journey',
@@ -542,6 +678,29 @@ export const en: Messages = {
   },
   shortcuts: {
     title: 'Keyboard shortcuts',
+    groupGeneral: 'General',
+    groupCanvas: 'Canvas',
+    groupSelection: 'Selection',
+    groupEdit: 'Editing',
+    groupPrototype: 'Prototype',
+    pan: 'Pan the canvas (hand); the middle button too',
+    space: 'Space',
+    drag: 'drag',
+    scroll: 'Scroll the canvas (⇧ for sideways)',
+    twoFingers: 'two fingers / wheel',
+    pinch: 'Zoom in or out at the cursor',
+    pinchKeys: 'pinch / ⌘ or Ctrl + wheel',
+    zoom100: 'Zoom to 100 % (⌘/Ctrl 0 too)',
+    nudgeScreen: 'Move the selected screen (⇧ ×10)',
+    flow: 'Show or hide the flow',
+    selectChildren: 'Select the children',
+    selectParent: 'Select the parent (⇧ Enter too)',
+    selectNext: 'Next sibling or screen (⇧ for previous)',
+    selectAll: 'Select all siblings',
+    cut: 'Cut the selected nodes',
+    unwrap: 'Unwrap the container',
+    prototypeBack: 'Back to the previous screen',
+    prototypeExit: 'Leave the prototype or Compare',
     palette: 'Open the command palette',
     help: 'Show this help',
     tabs: 'Go to tab 1–9',
@@ -563,8 +722,8 @@ export const en: Messages = {
     copy: 'Copy the selected nodes',
     paste: 'Paste inside the selected node',
     duplicate: 'Duplicate the selected nodes',
-    wrap: 'Wrap the selection in a container',
-    moveNode: 'Move the node up or down',
+    wrap: 'Wrap the selection in a container (⌘/Ctrl ⌥ G too)',
+    moveNode: 'Move the node up or down (⌘/Ctrl [ / ] too)',
   },
   narrow: {
     title: 'The window is too narrow to edit',

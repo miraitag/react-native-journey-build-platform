@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { Suspense, lazy, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { FileWarning, ShieldAlert } from 'lucide-react';
 import {
@@ -17,6 +17,8 @@ import { useLibraries } from '../services/library-store.ts';
 import { useHookPacks } from '../services/hooks-store.ts';
 import { useT } from '../app/preferences.ts';
 import { ErrorBoundary } from '../app/ErrorBoundary.tsx';
+import { useOnboarding } from '../app/onboarding.ts';
+import { useDialogs } from '../app/dialogs-store.ts';
 import { closeTab, loadTab } from '../app/persistence.ts';
 import { reportError } from '../app/report-error.ts';
 import { canEdit, useTabs, type DocumentTab, type ViewState } from '../app/tabs-store.ts';
@@ -45,6 +47,19 @@ const useMediaQuery = (query: string): boolean => {
   }, [query]);
   return matches;
 };
+
+const Tour = lazy(() => import('./Tour.tsx').then((m) => ({ default: m.Tour })));
+
+/** The coachmarks, once the welcome is closed and no other dialog is in the way. */
+function TourWhenDue() {
+  const due = useOnboarding((state) => state.tour && !state.welcome);
+  const dialog = useDialogs((state) => state.open);
+  return due && !dialog ? (
+    <Suspense fallback={null}>
+      <Tour />
+    </Suspense>
+  ) : null;
+}
 
 export function Editor({ tab }: { tab: DocumentTab }) {
   const i18n = useT();
@@ -227,6 +242,7 @@ function LoadedEditor({ tab, document }: { tab: DocumentTab; document: RnjbDocum
 
   return (
     <div className="flex h-full min-h-0 flex-col">
+      <TourWhenDue />
       <TopBar
         tab={tab}
         document={document}
@@ -253,7 +269,10 @@ function LoadedEditor({ tab, document }: { tab: DocumentTab; document: RnjbDocum
       )}
       <div className="flex min-h-0 flex-1">
         {leftOpen && (
-          <aside className="w-[264px] shrink-0 border-r border-line-subtle bg-panel">
+          <aside
+            data-tour="left"
+            className="w-[264px] shrink-0 border-r border-line-subtle bg-panel"
+          >
             <ErrorBoundary area={i18n.t('editor.panels.left')} i18n={i18n}>
               <LeftPanel
                 tabId={tab.id}
@@ -307,6 +326,7 @@ function LoadedEditor({ tab, document }: { tab: DocumentTab; document: RnjbDocum
         </main>
         {rightOpen && (
           <aside
+            data-tour="inspector"
             aria-label={i18n.t('editor.inspector.label')}
             className="w-[320px] shrink-0 border-l border-line-subtle bg-panel"
           >

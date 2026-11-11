@@ -155,3 +155,23 @@ export const wrapNodes =
     parent.children.splice(index, 0, id);
     onCreated?.(id);
   };
+
+/** The reverse of `wrapNodes`: the container's children take its place, and it is removed. */
+export const unwrapNode =
+  (screenId: string, nodeId: string, onDone?: (childIds: string[]) => void): Command =>
+  (draft) => {
+    const screen = screenOf(draft, screenId);
+    const node = screen.nodes[nodeId];
+    if (!node) throw new RnjbError('RNJB-601', { nodeId });
+    if (screen.rootId === nodeId) throw new RnjbError('RNJB-604', { nodeId });
+    const parent = screen.nodes[parentIdOf(screen, nodeId)] as Draft<DocumentNode>;
+    const index = parent.children.indexOf(nodeId);
+    const children = [...node.children];
+    parent.children.splice(index, 1, ...children);
+    delete screen.nodes[nodeId];
+    draft.connections = draft.connections.filter(
+      (connection) =>
+        !(connection.fromScreenId === screenId && connection.triggerNodeId === nodeId),
+    );
+    onDone?.(children);
+  };

@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { isTyping, onCanvas } from './focus.ts';
 import { extractFragment } from '@rnjb/core';
 import { useT } from './preferences.ts';
 import { useDialogs } from './dialogs-store.ts';
@@ -8,16 +9,17 @@ import { saveAs, saveFile } from './persistence.ts';
 import { trashNode, trashScreen } from './trash.ts';
 import {
   copySelection,
+  cutSelection,
   duplicateSelection,
   moveSelection,
+  navigate,
+  nudgeScreen,
   pasteClipboard,
+  selectScreenBy,
   selectionOf,
+  unwrapSelection,
   wrapSelection,
 } from '../editor/node-actions.ts';
-
-const isTyping = (target: EventTarget | null): boolean =>
-  target instanceof HTMLElement &&
-  (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName));
 
 /** Global shortcuts (§10.3). Board-level shortcuts live in the board itself. */
 export function useGlobalShortcuts(): void {
@@ -91,23 +93,57 @@ export function useGlobalShortcuts(): void {
         else for (const id of nodes) void trashNode(active.id, screen.id, id);
         return;
       }
-      // Node shortcuts (§10.3); without a selection the browser keeps its own behaviour.
+      // Node and canvas shortcuts (§10.3), as in Figma, Adobe and Affinity. Without a selection
+      // the browser keeps its own behaviour.
       if (active && tabs.activeId !== HOME_TAB) {
-        const handled =
-          mod && !event.altKey && !event.shiftKey && key === 'c'
-            ? copySelection(active.id)
-            : mod && !event.altKey && !event.shiftKey && key === 'v'
-              ? pasteClipboard(active.id)
-              : mod && !event.altKey && !event.shiftKey && key === 'd'
-                ? duplicateSelection(active.id)
-                : mod && event.altKey && event.code === 'KeyG'
-                  ? wrapSelection(active.id)
-                  : event.altKey && !mod && event.key === 'ArrowUp'
-                    ? moveSelection(active.id, -1)
-                    : event.altKey && !mod && event.key === 'ArrowDown'
-                      ? moveSelection(active.id, 1)
-                      : false;
-        if (handled) {
+        const id = active.id;
+        const shift = event.shiftKey;
+        const plain = !mod && !event.altKey;
+        // Tab, Enter, Esc and arrows only on the canvas: in the panels they move focus as usual.
+        const canvas = onCanvas(event.target);
+        const step = shift ? 80 : 8;
+        const arrows: Record<string, [number, number]> = {
+          ArrowLeft: [-step, 0],
+          ArrowRight: [step, 0],
+          ArrowUp: [0, -step],
+          ArrowDown: [0, step],
+        };
+        const actions: [boolean, () => boolean][] = [
+          [mod && !event.altKey && !shift && key === 'c', () => copySelection(id)],
+          [mod && !event.altKey && !shift && key === 'x', () => cutSelection(id)],
+          [mod && !event.altKey && !shift && key === 'v', () => pasteClipboard(id)],
+          [mod && !event.altKey && !shift && key === 'd', () => duplicateSelection(id)],
+          // ⌘G groups as in Figma; ⌘⌥G (frame selection) does the same here.
+          [mod && !shift && event.code === 'KeyG', () => wrapSelection(id)],
+          [mod && shift && event.code === 'KeyG', () => unwrapSelection(id)],
+          [canvas && mod && !event.altKey && !shift && key === 'a', () => navigate(id, 'siblings')],
+          [
+            (event.altKey && !mod && event.key === 'ArrowUp') || (mod && event.key === '['),
+            () => moveSelection(id, -1),
+          ],
+          [
+            (event.altKey && !mod && event.key === 'ArrowDown') || (mod && event.key === ']'),
+            () => moveSelection(id, 1),
+          ],
+          [canvas && plain && event.key === 'Escape', () => navigate(id, 'parent')],
+          [canvas && plain && event.key === 'Enter' && !shift, () => navigate(id, 'children')],
+          [
+            canvas && plain && ((event.key === 'Enter' && shift) || event.key === '\\'),
+            () => navigate(id, 'parent'),
+          ],
+          [
+            canvas && plain && event.key === 'Tab',
+            () =>
+              active.view.selectedNodeId
+                ? navigate(id, shift ? 'previous' : 'next')
+                : selectScreenBy(id, shift ? -1 : 1),
+          ],
+          [
+            canvas && plain && event.key in arrows,
+            () => nudgeScreen(id, ...(arrows[event.key] as [number, number])),
+          ],
+        ];
+        if (actions.find(([when]) => when)?.[1]()) {
           event.preventDefault();
           return;
         }

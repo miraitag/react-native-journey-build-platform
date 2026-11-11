@@ -11,6 +11,7 @@ export * from './logic.ts';
 export * from './basic-journey.ts';
 export * from './move.ts';
 export * from './fragment.ts';
+export * from './flow.ts';
 export * from './nesting.ts';
 export * from './spacing.ts';
 export * from './history.ts';

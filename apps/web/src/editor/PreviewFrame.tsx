@@ -27,6 +27,8 @@ interface PreviewFrameProps {
   stateId: string | undefined;
   selectedNodeId: string | undefined;
   extraNodeIds?: readonly string[] | undefined;
+  /** Prototype triggers, outlined; filled while `flash` (a click missed them). */
+  hotspots?: { ids: ReadonlySet<string>; flash: boolean } | undefined;
   onSelectNode: (nodeId: string, additive?: boolean) => void;
   onInsertComponent: ((item: DraggedComponent, targetNodeId?: string) => void) | undefined;
   canInsertComponent: ((item: DraggedComponent, targetNodeId?: string) => boolean) | undefined;
@@ -56,6 +58,7 @@ export function PreviewFrame({
   stateId,
   selectedNodeId,
   extraNodeIds,
+  hotspots,
   onSelectNode,
   onInsertComponent,
   canInsertComponent,
@@ -92,7 +95,24 @@ export function PreviewFrame({
       const parsed = frameMessageSchema.safeParse(event.data);
       if (!parsed.success) return;
       const message = parsed.data;
-      if (message.type === 'rnjb:ready') setReady(true);
+      if (message.type === 'rnjb:wheel') {
+        // Replayed on the iframe element, so it bubbles to the canvas like any other wheel.
+        const iframe = frameRef.current;
+        if (!iframe) return;
+        const rect = iframe.getBoundingClientRect();
+        const scale = iframe.offsetWidth > 0 ? rect.width / iframe.offsetWidth : 1;
+        iframe.dispatchEvent(
+          new WheelEvent('wheel', {
+            deltaX: message.deltaX,
+            deltaY: message.deltaY,
+            ctrlKey: message.zoom,
+            clientX: rect.left + message.x * scale,
+            clientY: rect.top + message.y * scale,
+            bubbles: true,
+            cancelable: true,
+          }),
+        );
+      } else if (message.type === 'rnjb:ready') setReady(true);
       else if (message.type === 'rnjb:error') setFailed(true);
       else if (message.type === 'rnjb:rects') {
         setReported({ screenId: message.screenId, rects: message.rects });
@@ -244,9 +264,14 @@ export function PreviewFrame({
                       : 'shadow-[0_0_0_calc(2px*var(--inv-zoom))_var(--drop-invalid)]'
                     : id === selectedNodeId || extraNodeIds?.includes(id)
                       ? 'shadow-[0_0_0_calc(var(--selection-width)*var(--inv-zoom))_var(--selection-color)]'
-                      : split.has(id)
-                        ? 'shadow-[0_0_0_calc(2px*var(--inv-zoom))_var(--warning)]'
-                        : 'hover:shadow-[0_0_0_calc(1px*var(--inv-zoom))_var(--selection-color)]',
+                      : hotspots?.ids.has(id)
+                        ? hotspots.flash
+                          ? 'bg-[color-mix(in_oklch,var(--selection-color)_30%,transparent)] shadow-[0_0_0_calc(2px*var(--inv-zoom))_var(--selection-color)]'
+                          : // Dashed, so a trigger never reads as the selection.
+                            'outline-dashed outline-(--selection-color) [outline-offset:calc(1px*var(--inv-zoom))] [outline-width:calc(1.5px*var(--inv-zoom))]'
+                        : split.has(id)
+                          ? 'shadow-[0_0_0_calc(2px*var(--inv-zoom))_var(--warning)]'
+                          : 'hover:shadow-[0_0_0_calc(1px*var(--inv-zoom))_var(--selection-color)]',
                 )}
                 style={{ left: rect.x, top: rect.y, width: rect.width, height: rect.height }}
               />

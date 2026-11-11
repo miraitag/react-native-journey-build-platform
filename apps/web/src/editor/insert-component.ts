@@ -24,6 +24,8 @@ export interface DraggedComponent {
   component: string;
   /** Set for a block: its nodes are copied with fresh ids; `package`/`component` are its root's. */
   block?: NodeFragment;
+  /** A variant picked in the catalog (§11.3): the node starts with this prop set. */
+  variant?: { prop: string; value: string | number | boolean };
 }
 
 function manifestOf(packs: readonly LibraryPack[], pkg: string, component: string) {
@@ -103,7 +105,12 @@ export function insertComponentCommand(
           component: item.component,
           version: found?.pack.packageVersion ?? '0.0.0',
         },
-        props: found ? defaultPropsOf(found.manifest) : {},
+        props: {
+          ...(found ? defaultPropsOf(found.manifest) : {}),
+          ...(item.variant
+            ? { [item.variant.prop]: { type: 'literal', value: item.variant.value } }
+            : {}),
+        },
         children: [],
         layout: {},
         spacing: {},

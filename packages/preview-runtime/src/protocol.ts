@@ -61,6 +61,15 @@ export const frameMessageSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('rnjb:error'), message: z.string() }),
   z.strictObject({ type: z.literal('rnjb:library-loaded'), key: z.string() }),
   z.strictObject({ type: z.literal('rnjb:library-failed'), key: z.string(), message: z.string() }),
+  /** Wheel or pinch the screen does not use itself, handed to the editor's canvas. */
+  z.strictObject({
+    type: z.literal('rnjb:wheel'),
+    deltaX: z.number(),
+    deltaY: z.number(),
+    zoom: z.boolean(),
+    x: z.number(),
+    y: z.number(),
+  }),
 ]);
 
 export type SceneNode = z.infer<typeof sceneNodeSchema>;

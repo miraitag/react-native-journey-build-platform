@@ -1,6 +1,6 @@
 /**
  * Starts the local service for the Playwright runs (plan §5.3) against an isolated temporary
- * home and workspace: the `journey-50` fixture plus small journeys (`mini-01`…`mini-25`)
+ * home and workspace: the `journey-50` fixture plus small journeys (`mini-01`…`mini-27`)
  * that the e2e tests edit, delete and restore (one per test; the persistence test uses 01–10).
  * Run from the repo root after `pnpm fixtures`.
  */
@@ -26,7 +26,7 @@ const context: CommandContext = {
 };
 const PACKAGE = '@rnjb-fixture/components';
 const VERSION = '0.0.0-fixture';
-for (let index = 1; index <= 25; index += 1) {
+for (let index = 1; index <= 27; index += 1) {
   const number = String(index).padStart(2, '0');
   const slug = `mini-${number}`;
   let doc = createDocument(

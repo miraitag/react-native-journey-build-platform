@@ -24,6 +24,7 @@ export function StatusBar({ unresolvedLibraries }: { unresolvedLibraries: number
   return (
     <footer
       role="status"
+      data-tour="statusbar"
       className="flex h-6 shrink-0 items-stretch border-t border-line-subtle bg-chrome text-2xs text-fg-muted select-none"
     >
       <WithTooltip

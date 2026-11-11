@@ -23,6 +23,8 @@ interface DeviceState {
   postures: Readonly<Record<string, string>>;
   /** Up to two more devices shown next to the selected screen (§12.6). */
   compareIds: readonly string[];
+  /** The compare view replaces the canvas while on. */
+  comparing: boolean;
   load: () => Promise<void>;
   saveCustom: (devices: readonly Device[]) => Promise<void>;
   select: (id: string | undefined) => void;
@@ -30,6 +32,7 @@ interface DeviceState {
   setOrientation: (orientation: Orientation) => void;
   selectPosture: (deviceId: string, postureId: string | undefined) => void;
   setCompare: (ids: readonly string[]) => void;
+  setComparing: (on: boolean) => void;
 }
 
 export const MAX_COMPARED = 2;
@@ -43,6 +46,7 @@ export const useDevices = create<DeviceState>((set, get) => ({
   orientation: 'portrait',
   postures: {},
   compareIds: [],
+  comparing: false,
 
   load: async () => {
     const { packs } = await localService.listDevicesPacks();
@@ -88,6 +92,17 @@ export const useDevices = create<DeviceState>((set, get) => ({
     }),
 
   setCompare: (ids) => set({ compareIds: ids.slice(0, MAX_COMPARED) }),
+
+  setComparing: (on) => {
+    const { compareIds, devices, selectedId } = get();
+    const main = devices.find((device) => device.id === selectedId);
+    set({
+      comparing: on,
+      ...(on && compareIds.length === 0 && main
+        ? { compareIds: defaultComparison(main, devices) }
+        : {}),
+    });
+  },
 }));
 
 /** OS version in effect for a device: the user's pick if still valid, else its default. */
@@ -98,3 +113,19 @@ export const osVersionOf = (
   const picked = osVersions[device.id];
   return picked && device.osVersions.includes(picked) ? picked : device.defaultOsVersion;
 };
+
+/**
+ * Devices to compare when the user has not picked any: the first of the other platform and the
+ * narrowest of the same one, the two that most often break a layout. All from the devices pack.
+ */
+export function defaultComparison(main: Device, devices: readonly Device[]): string[] {
+  const others = devices.filter((device) => device.id !== main.id);
+  const otherPlatform = others.find((device) => device.platform !== main.platform);
+  const narrowest = others
+    .filter((device) => device.platform === main.platform)
+    .sort((a, b) => a.logicalSize.width - b.logicalSize.width)[0];
+  return [...new Set([otherPlatform?.id, narrowest?.id].filter((id): id is string => !!id))].slice(
+    0,
+    MAX_COMPARED,
+  );
+}

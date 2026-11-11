@@ -31,12 +31,22 @@ test('orientation, posture, chrome style and comparison change the preview', asy
   await page.getByRole('combobox', { name: 'Postura' }).selectOption({ label: 'Desplegado' });
   await expect(preview).toHaveAttribute('width', '722');
 
-  await page.getByRole('combobox', { name: 'Comparar con otros dispositivos' }).selectOption({
+  // Compare: the main device plus two preselected ones from the pack; chips remove, the select adds.
+  await page.getByRole('button', { name: 'Comparar', exact: true }).click();
+  const compare = page.getByRole('region', { name: 'Comparación de dispositivos' });
+  await expect(compare.locator('iframe')).toHaveCount(3);
+  await compare
+    .getByRole('button', { name: /^Quitar / })
+    .first()
+    .click();
+  await expect(compare.locator('iframe')).toHaveCount(2);
+  await compare.getByRole('combobox', { name: 'Añadir dispositivo…' }).selectOption({
     label: 'iPhone 13',
   });
-  const strip = page.getByRole('region', { name: 'Comparación de dispositivos' });
-  await expect(strip.getByText('iPhone 13')).toBeVisible();
-  await expect(strip.locator('iframe')).toHaveCount(1);
+  await expect(compare.getByRole('figure').getByText('iPhone 13', { exact: true })).toBeVisible();
+  await expect(compare.locator('iframe')).toHaveCount(3);
+  await page.keyboard.press('Escape');
+  await expect(compare).toBeHidden();
 
   await page.getByRole('combobox', { name: 'Estado de pantalla' }).selectOption({ index: 0 });
   await expect(page.getByTitle('Renombrar journey')).toHaveText('Mini 23 editado');

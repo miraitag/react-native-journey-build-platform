@@ -43,3 +43,45 @@ export async function pickRnjbFile(): Promise<PickedFile | undefined> {
     input.click();
   });
 }
+
+export interface PickedFolder {
+  name: string;
+  /** `.rnjb` files found, by path relative to the folder. */
+  files: { path: string; handle: FileSystemFileHandle }[];
+}
+
+type DirectoryHandle = FileSystemDirectoryHandle & {
+  values: () => AsyncIterable<FileSystemFileHandle | DirectoryHandle>;
+};
+
+export const canPickFolder = (): boolean => 'showDirectoryPicker' in window;
+
+/**
+ * Without the local service, Chromium can still read a workspace folder (§6.7). Walks three levels,
+ * enough for `journeys/<slug>/<slug>.rnjb`; hidden folders (`.rnjb-cache`, `.git`) are skipped.
+ */
+export async function pickRnjbFolder(): Promise<PickedFolder | undefined> {
+  const picker = (window as unknown as { showDirectoryPicker: () => Promise<DirectoryHandle> })
+    .showDirectoryPicker;
+  let root: DirectoryHandle;
+  try {
+    root = await picker();
+  } catch (error) {
+    if ((error as DOMException).name === 'AbortError') return undefined;
+    throw error;
+  }
+  const files: PickedFolder['files'] = [];
+  const walk = async (directory: DirectoryHandle, prefix: string, depth: number) => {
+    for await (const entry of directory.values()) {
+      if (entry.name.startsWith('.') || entry.name === 'node_modules') continue;
+      if (entry.kind === 'file') {
+        if (entry.name.endsWith('.rnjb')) files.push({ path: prefix + entry.name, handle: entry });
+      } else if (depth < 3) {
+        await walk(entry, `${prefix}${entry.name}/`, depth + 1);
+      }
+    }
+  };
+  await walk(root, '', 1);
+  files.sort((a, b) => a.path.localeCompare(b.path));
+  return { name: root.name, files };
+}

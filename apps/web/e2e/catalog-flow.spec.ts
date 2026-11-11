@@ -9,7 +9,7 @@ test('extract a library, add its component to a screen and see it rendered for r
   await screens.getByRole('button', { name: /^Inicio/ }).click();
 
   await page.getByRole('tab', { name: 'Catálogo' }).click();
-  await page.getByRole('button', { name: 'Extraer manifiesto' }).click();
+  await page.getByRole('button', { name: /extraer/i }).click();
   await expect(page.getByText('@rnjb-fixture/ui: 1 componentes').first()).toBeVisible();
 
   await page.getByRole('button', { name: 'Añadir Chip a la pantalla' }).click();
@@ -151,4 +151,27 @@ test('a component dropped where its nesting rules forbid it is not inserted', as
   await expect(page.getByRole('tabpanel', { name: 'Capas' })).toBeVisible();
   await expect(page.getByRole('tabpanel', { name: 'Capas' }).getByText('Sello')).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Deshacer' })).toBeDisabled();
+});
+
+test('the catalog shows the library version and adds a component in one of its variants', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Abrir Mini 27' }).first().click();
+  const screens = page.getByRole('tabpanel', { name: 'Pantallas' });
+  await screens.getByRole('button', { name: /^Inicio/ }).click();
+  await page.getByRole('tab', { name: 'Catálogo' }).click();
+  await page.getByRole('button', { name: /extraer/i }).click();
+
+  const catalog = page.getByRole('tabpanel', { name: 'Catálogo' });
+  await expect(catalog.getByText('1.0.0', { exact: true }).first()).toBeVisible();
+
+  await catalog.getByRole('button', { name: 'Variantes de Chip' }).click();
+  await catalog.getByRole('button', { name: 'Añadir Chip (b) a la pantalla' }).click();
+  const frame = page.frameLocator('iframe[title^="Vista previa de"]');
+  await expect(frame.getByText('chip-real-b')).toBeVisible({ timeout: 30_000 });
+
+  // Grouped by category, the same component is still there to add.
+  await catalog.getByRole('radio', { name: 'Categoría' }).click();
+  await expect(catalog.getByRole('button', { name: 'Añadir Chip a la pantalla' })).toBeVisible();
 });

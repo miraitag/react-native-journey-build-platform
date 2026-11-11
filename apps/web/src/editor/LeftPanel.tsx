@@ -4,11 +4,15 @@ import {
   ChevronDown,
   ChevronUp,
   Copy,
+  CornerDownRight,
   Database,
   Flag,
   Layers,
   LayoutGrid,
+  Link2,
   ListChecks,
+  ListIndentDecrease,
+  ListIndentIncrease,
   Workflow,
   MoreHorizontal,
   Package,
@@ -20,6 +24,10 @@ import {
 import {
   addScreen,
   duplicateScreen,
+  flowTree,
+  nestScreen,
+  reorderScreen,
+  type FlowRow,
   renameScreen,
   setInitialScreen,
   type Command,
@@ -120,8 +128,8 @@ export function LeftPanel({
       >
         {PANELS.map(({ id, key, icon }) => (
           <WithTooltip key={id} label={i18n.t(key)}>
-            <span className="inline-flex">
-              <TabsTrigger value={id} className="w-8 justify-center px-0">
+            <span className="flex min-w-0 flex-1" data-tour={`panel-${id}`}>
+              <TabsTrigger value={id} className="w-full justify-center px-0">
                 <span aria-hidden>{icon}</span>
                 <span className="sr-only">{i18n.t(key)}</span>
               </TabsTrigger>
@@ -135,6 +143,7 @@ export function LeftPanel({
       <div className="min-h-0 flex-1 overflow-auto">
         <TabsContent value="catalog">
           <CatalogPanel
+            libraries={document.libraries}
             onAdd={
               onInsertComponent && screen
                 ? (item) => onInsertComponent(item, selectedNodeId)
@@ -202,10 +211,13 @@ export function LeftPanel({
   );
 }
 
+/** Indent per flow level, in px. */
+const INDENT = 14;
+
 const rowClass = (selected: boolean, size: 'md' | 'sm' = 'md') =>
   cx(
     'flex w-full items-center gap-2 rounded-md px-2 text-left',
-    size === 'md' ? 'h-7 text-sm' : 'h-6 font-mono text-2xs',
+    size === 'md' ? 'min-h-7 py-1 text-sm' : 'h-6 font-mono text-2xs',
     selected ? 'bg-accent-subtle text-accent-fg' : 'text-fg hover:bg-hover',
   );
 
@@ -226,6 +238,53 @@ function ScreenList({
 }) {
   const i18n = useT();
   const [renaming, setRenaming] = useState<string>();
+  const [dragId, setDragId] = useState<string>();
+  const [hover, setHover] = useState<{
+    key: string;
+    index: number;
+    position: DropPosition;
+    depth: number;
+  }>();
+  const rows = flowTree(document);
+  const byId = new Map(document.screens.map((screen) => [screen.id, screen]));
+  const endDrag = () => {
+    setDragId(undefined);
+    setHover(undefined);
+  };
+  /**
+   * Inside a row: that screen navigates to the dragged one. Before / after: under the row's
+   * ancestor at `depth` (as the drop line shows), and at the top level the screen order follows
+   * the drop. One command, one undo step.
+   */
+  const dropOn = (dragged: string, index: number, position: DropPosition, depth: number) => {
+    const row = rows[index];
+    if (!row) return;
+    if (position === 'inside') return onRun(nestScreen(dragged, row.screenId));
+    const parent = depth === 0 ? undefined : ancestorAt(rows, index, depth - 1);
+    const anchor = row.depth === 0 ? row.screenId : ancestorAt(rows, index, 0);
+    const order = document.screens.map((screen) => screen.id).filter((id) => id !== dragged);
+    const at =
+      (anchor && order.includes(anchor) ? order.indexOf(anchor) : order.length - 1) +
+      (position === 'before' && row.depth === 0 ? 0 : 1);
+    onRun((draft, context) => {
+      nestScreen(dragged, parent)(draft, context);
+      if (!parent) reorderScreen(dragged, at)(draft, context);
+    });
+  };
+  /** Where a drag over row `index` lands; the initial screen only moves along the top level. */
+  const dropAt = (event: DragEvent<HTMLElement>, index: number) => {
+    const row = rows[index];
+    const position = dropPositionAt(event);
+    if (!row || !dragId) return undefined;
+    const initial = dragId === document.board.initialScreenId;
+    if (position === 'inside') return initial ? undefined : { position, depth: row.depth + 1 };
+    if (initial) return { position, depth: 0 };
+    // Below a row the pointer's x picks the level, so dragging left takes the screen out.
+    const x = event.clientX - event.currentTarget.getBoundingClientRect().left - 8;
+    const depth =
+      position === 'after' ? Math.max(0, Math.min(row.depth, Math.round(x / INDENT))) : row.depth;
+    return { position, depth };
+  };
   const create = () => {
     const base =
       document.screens.find((candidate) => candidate.id === selectedScreenId) ??
@@ -272,12 +331,51 @@ function ScreenList({
   return (
     <>
       {header}
-      <ul className="flex flex-col gap-px px-1.5 pb-2">
-        {document.screens.map((screen) => {
+      <ul
+        aria-label={i18n.t('editor.screens.flow')}
+        className="flex min-h-full flex-col gap-px px-1.5 pb-2"
+      >
+        {rows.map((row, index) => {
+          const screen = byId.get(row.screenId);
+          if (!screen) return null;
+          const key = `${row.parentId ?? 'top'}/${row.screenId}/${index}`;
+          const guides = Array.from({ length: row.depth }, (_, level) => (
+            <span
+              key={level}
+              aria-hidden
+              className="pointer-events-none absolute inset-y-0 w-px bg-line-subtle"
+              style={{ left: 15 + level * INDENT }}
+            />
+          ));
+          const indent = { paddingLeft: 8 + row.depth * INDENT };
+          if (row.reference) {
+            return (
+              <li key={key} className="relative">
+                {guides}
+                <button
+                  type="button"
+                  title={i18n.t('editor.screens.reference', { screen: screen.name })}
+                  onClick={() => onSelect(screen.id)}
+                  style={indent}
+                  className={cx(rowClass(false), 'text-fg-muted')}
+                >
+                  <Link2 size={12} aria-hidden className="shrink-0 text-fg-subtle" />
+                  <span className="flex min-w-0 flex-1 flex-col leading-tight">
+                    <span className="truncate">{screen.name}</span>
+                    {row.trigger && (
+                      <span className="truncate text-2xs text-fg-subtle">
+                        {i18n.t('editor.screens.via', { trigger: row.trigger })}
+                      </span>
+                    )}
+                  </span>
+                </button>
+              </li>
+            );
+          }
           const initial = document.board.initialScreenId === screen.id;
           if (renaming === screen.id) {
             return (
-              <li key={screen.id}>
+              <li key={key} style={indent}>
                 <RenameInput
                   initial={screen.name}
                   label={i18n.t('editor.screens.rename')}
@@ -289,20 +387,99 @@ function ScreenList({
               </li>
             );
           }
+          const parent = row.parentId ? byId.get(row.parentId) : undefined;
+          const previous = previousSibling(rows, index);
+          const over = hover?.key === key ? hover : undefined;
+          // The screen the drop line would nest into, outlined so the landing level is visible.
+          const target =
+            hover && hover.position !== 'inside' && hover.depth > 0
+              ? ancestorAt(rows, hover.index, hover.depth - 1)
+              : undefined;
           return (
-            <li key={screen.id} className="group relative">
+            <li
+              key={key}
+              className={cx(
+                'group relative rounded-md',
+                dragId === screen.id && 'opacity-50',
+                over?.position === 'inside' &&
+                  'bg-accent-subtle shadow-[inset_0_0_0_1.5px_var(--selection-color)]',
+                target === screen.id &&
+                  !row.reference &&
+                  'shadow-[inset_0_0_0_1px_var(--selection-color)]',
+              )}
+              draggable={editable}
+              onDragStart={(event) => {
+                event.dataTransfer.effectAllowed = 'move';
+                // Firefox does not start a drag without data.
+                event.dataTransfer.setData('text/plain', screen.id);
+                // A small chip beside the pointer instead of the whole row, so the drop line
+                // and the rows under the pointer stay in sight.
+                const chip = window.document.createElement('div');
+                chip.textContent = screen.name;
+                chip.style.cssText =
+                  'position:fixed;top:-100px;left:0;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:2px 8px;border-radius:999px;font:500 11px system-ui;color:#fff;background:var(--selection-color)';
+                window.document.body.append(chip);
+                event.dataTransfer.setDragImage(chip, -16, -14);
+                setTimeout(() => chip.remove());
+                setDragId(screen.id);
+              }}
+              onDragEnd={endDrag}
+              onDragOver={(event) => {
+                if (!dragId || dragId === screen.id) return;
+                const drop = dropAt(event, index);
+                if (!drop) return setHover(undefined);
+                event.preventDefault();
+                event.dataTransfer.dropEffect = 'move';
+                setHover((current) =>
+                  current?.key === key &&
+                  current.position === drop.position &&
+                  current.depth === drop.depth
+                    ? current
+                    : { key, index, ...drop },
+                );
+              }}
+              onDragLeave={() => setHover(undefined)}
+              onDrop={(event) => {
+                event.preventDefault();
+                const drop = dragId && dragId !== screen.id ? dropAt(event, index) : undefined;
+                if (dragId && drop) dropOn(dragId, index, drop.position, drop.depth);
+                endDrag();
+              }}
+            >
+              {guides}
+              {over && over.position !== 'inside' && (
+                // The drop line starts at the level the screen lands on, as in design tools.
+                <span
+                  aria-hidden
+                  className={cx(
+                    'pointer-events-none absolute right-1 z-10 h-0.5 rounded-full bg-[var(--selection-color)]',
+                    over.position === 'before' ? '-top-px' : '-bottom-px',
+                  )}
+                  style={{ left: 8 + over.depth * INDENT }}
+                >
+                  <span className="absolute -top-[3px] -left-1 size-2 rounded-full border-2 border-[var(--selection-color)] bg-panel" />
+                </span>
+              )}
               <button
                 type="button"
                 aria-current={screen.id === selectedScreenId || undefined}
                 onClick={() => onSelect(screen.id)}
                 onDoubleClick={() => editable && setRenaming(screen.id)}
+                style={indent}
                 className={cx(rowClass(screen.id === selectedScreenId), editable && 'pr-8')}
               >
-                <span className="min-w-0 flex-1 truncate">{screen.name}</span>
-                {initial && <Badge tone="accent">{i18n.t('editor.screens.initial')}</Badge>}
-                <span className="tabular shrink-0 text-2xs text-fg-subtle">
-                  {Object.keys(screen.nodes).length}
+                {row.depth > 0 && (
+                  <CornerDownRight size={12} aria-hidden className="shrink-0 text-fg-subtle" />
+                )}
+                <span className="flex min-w-0 flex-1 flex-col leading-tight">
+                  <span className="truncate">{screen.name}</span>
+                  {row.trigger && (
+                    <span className="truncate text-2xs text-fg-subtle">
+                      {i18n.t('editor.screens.via', { trigger: row.trigger })}
+                    </span>
+                  )}
                 </span>
+                {initial && <Badge tone="accent">{i18n.t('editor.screens.initial')}</Badge>}
               </button>
               {editable && (
                 <Menu>
@@ -343,6 +520,26 @@ function ScreenList({
                       {i18n.t('editor.screens.setInitial')}
                     </MenuItem>
                     <MenuSeparator />
+                    {/* Keyboard equivalents of the drag, as in any outliner. */}
+                    <MenuItem
+                      icon={<ListIndentIncrease size={14} />}
+                      disabled={!previous}
+                      onSelect={() => previous && onRun(nestScreen(screen.id, previous))}
+                    >
+                      {i18n.t('editor.screens.nestUnder', {
+                        screen: (previous && byId.get(previous)?.name) ?? '…',
+                      })}
+                    </MenuItem>
+                    <MenuItem
+                      icon={<ListIndentDecrease size={14} />}
+                      disabled={!parent}
+                      onSelect={() =>
+                        parent && onRun(nestScreen(screen.id, parentOfRow(rows, parent.id)))
+                      }
+                    >
+                      {i18n.t('editor.screens.unnest', { screen: parent?.name ?? '…' })}
+                    </MenuItem>
+                    <MenuSeparator />
                     <MenuItem
                       tone="danger"
                       icon={<Trash2 size={14} />}
@@ -356,10 +553,60 @@ function ScreenList({
             </li>
           );
         })}
+        {dragId && rows.length > 0 && (
+          // Room below the list: dropping here leaves the screen at the top level, last.
+          <li
+            aria-hidden
+            className="min-h-16 flex-1"
+            onDragOver={(event) => {
+              event.preventDefault();
+              event.dataTransfer.dropEffect = 'move';
+              const index = rows.length - 1;
+              const last = rows[index]!;
+              const key = `${last.parentId ?? 'top'}/${last.screenId}/${index}`;
+              setHover((current) =>
+                current?.key === key && current.position === 'after' && current.depth === 0
+                  ? current
+                  : { key, index, position: 'after', depth: 0 },
+              );
+            }}
+            onDrop={(event) => {
+              event.preventDefault();
+              dropOn(dragId, rows.length - 1, 'after', 0);
+              endDrag();
+            }}
+          />
+        )}
       </ul>
+      {editable && document.screens.length > 1 && !dragId && (
+        <p className="px-3 pb-2 text-2xs text-fg-subtle">{i18n.t('editor.screens.flowHint')}</p>
+      )}
     </>
   );
 }
+
+/** The previous screen at the same level under the same parent: where "nest under" goes. */
+function previousSibling(rows: readonly FlowRow[], index: number): string | undefined {
+  const row = rows[index];
+  for (let at = index - 1; at >= 0; at -= 1) {
+    const candidate = rows[at];
+    if (!row || !candidate || candidate.depth < row.depth) return undefined;
+    if (candidate.depth === row.depth && !candidate.reference) return candidate.screenId;
+  }
+  return undefined;
+}
+
+/** The screen of the nearest row above `index` at `depth`: the row's ancestor at that level. */
+function ancestorAt(rows: readonly FlowRow[], index: number, depth: number): string | undefined {
+  for (let at = index; at >= 0; at -= 1) {
+    if (rows[at]?.depth === depth) return rows[at]?.screenId;
+  }
+  return undefined;
+}
+
+/** The parent of `screenId`'s own (non-reference) row, i.e. one level up. */
+const parentOfRow = (rows: readonly FlowRow[], screenId: string): string | undefined =>
+  rows.find((row) => row.screenId === screenId && !row.reference)?.parentId;
 
 function RenameInput({
   initial,

@@ -1,7 +1,17 @@
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { Badge, Button, Dialog, DialogContent, EmptyState, Input } from '@rnjb/ui';
-import type { ComponentManifest } from '@rnjb/pack-schema';
+import { AlertTriangle, ChevronRight, RefreshCw } from 'lucide-react';
+import {
+  Badge,
+  Button,
+  Dialog,
+  DialogContent,
+  EmptyState,
+  IconButton,
+  Input,
+  Segmented,
+} from '@rnjb/ui';
+import type { ComponentManifest, LibraryPack } from '@rnjb/pack-schema';
 import { useT } from '../app/preferences.ts';
 import { reportError } from '../app/report-error.ts';
 import { useLibraries } from '../services/library-store.ts';
@@ -19,9 +29,22 @@ function groupByCategory(components: readonly ComponentManifest[]) {
   return [...groups.entries()].sort(([a], [b]) => a.localeCompare(b));
 }
 
+type CatalogView = 'library' | 'category';
+
+/** A category the team declared in the pack shows its name under its parent's (two levels, §11.3). */
+export function categoryLabel(pack: Pick<LibraryPack, 'categories'>, category: string): string {
+  const own = pack.categories?.find((candidate) => candidate.id === category);
+  if (!own) return category;
+  const parent = pack.categories?.find((candidate) => candidate.id === own.parentId);
+  return parent ? `${parent.name} / ${own.name}` : own.name;
+}
+
 export function CatalogPanel({
+  libraries,
   onAdd,
 }: {
+  /** Libraries of the open document: a version other than the catalog's is flagged (§11.3). */
+  libraries?: readonly { package: string; version: string }[];
   /** Present when a screen is selected and the document is editable. */
   onAdd?: (item: DraggedComponent) => void;
 }) {
@@ -31,11 +54,14 @@ export function CatalogPanel({
   const status = useService((state) => state.status);
   const sources = useService((state) => state.settings?.librarySources);
   const packs = useLibraries((state) => state.packs);
+  const loading = useLibraries((state) => state.loading);
   const extracting = useLibraries((state) => state.extracting);
   const load = useLibraries((state) => state.load);
   const extract = useLibraries((state) => state.extract);
   const review = useLibraries((state) => state.review);
   const [query, setQuery] = useState('');
+  const [view, setView] = useState<CatalogView>('library');
+  const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
   const [pending, setPending] = useState<{ pkg: string; diff: LibraryDiff }>();
   const online = status === 'online';
 
@@ -91,6 +117,112 @@ export function CatalogPanel({
   }
 
   const needle = query.trim().toLowerCase();
+  const shown = (pack: LibraryPack | undefined) =>
+    (pack?.components ?? []).filter(
+      (component) => !needle || component.name.toLowerCase().includes(needle),
+    );
+
+  const rows = (pack: LibraryPack, components: readonly ComponentManifest[]) => (
+    <ul className="flex flex-col">
+      {components.map((component) => {
+        const key = `${pack.package}/${component.name}`;
+        const variantProp = component.props.find(
+          (prop) => prop.name === component.variantProps?.[0] && prop.options?.length,
+        );
+        const open = expanded.has(key);
+        const row = (variant?: DraggedComponent['variant']) => {
+          const item = { package: pack.package, component: component.name, variant };
+          return (
+            <button
+              type="button"
+              disabled={!onAdd}
+              draggable={Boolean(onAdd)}
+              onDragStart={(event) => {
+                event.dataTransfer.effectAllowed = 'copy';
+                event.dataTransfer.setData('text/plain', component.name);
+                startDrag(item);
+              }}
+              onDragEnd={endDrag}
+              title={`${pack.package}@${pack.packageVersion}`}
+              aria-label={
+                variant
+                  ? i18n.t('editor.catalog.addVariant', {
+                      name: component.name,
+                      variant: String(variant.value),
+                    })
+                  : i18n.t('editor.catalog.add', { name: component.name })
+              }
+              onClick={() => onAdd?.(item)}
+              className="flex min-w-0 flex-1 items-center justify-between gap-2 px-1.5 py-1 text-left text-sm disabled:cursor-default"
+            >
+              {variant ? (
+                <span className="truncate pl-5 font-mono text-xs text-fg-muted">
+                  {variant.prop}: {String(variant.value)}
+                </span>
+              ) : (
+                <>
+                  <span className="truncate">{component.name}</span>
+                  <Badge>{i18n.t('editor.catalog.props', { count: component.props.length })}</Badge>
+                </>
+              )}
+            </button>
+          );
+        };
+        return (
+          <li key={key} className="[contain-intrinsic-size:auto_28px] [content-visibility:auto]">
+            <div className="flex items-center rounded-sm hover:bg-hover">
+              {variantProp && (
+                <button
+                  type="button"
+                  aria-expanded={open}
+                  aria-label={i18n.t('editor.catalog.variants', { name: component.name })}
+                  onClick={() =>
+                    setExpanded((previous) => {
+                      const next = new Set(previous);
+                      if (!next.delete(key)) next.add(key);
+                      return next;
+                    })
+                  }
+                  className="flex size-6 shrink-0 items-center justify-center text-fg-subtle hover:text-fg"
+                >
+                  <ChevronRight
+                    size={12}
+                    aria-hidden
+                    className={open ? 'rotate-90 transition-transform' : 'transition-transform'}
+                  />
+                </button>
+              )}
+              {row()}
+            </div>
+            {open && variantProp && (
+              <ul className="flex flex-col">
+                {(variantProp.options ?? []).map((value) => (
+                  <li key={String(value)} className="flex items-center rounded-sm hover:bg-hover">
+                    {row({ prop: variantProp.name, value })}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </li>
+        );
+      })}
+    </ul>
+  );
+
+  const heading = (text: string) => (
+    <h4 className="py-1 text-2xs font-semibold tracking-wide text-fg-subtle uppercase">{text}</h4>
+  );
+
+  const byCategory = new Map<string, { pack: LibraryPack; components: ComponentManifest[] }[]>();
+  if (view === 'category') {
+    for (const pack of packs) {
+      for (const [category, components] of groupByCategory(shown(pack))) {
+        const label = categoryLabel(pack, category) || i18n.t('editor.catalog.uncategorized');
+        byCategory.set(label, [...(byCategory.get(label) ?? []), { pack, components }]);
+      }
+    }
+  }
+
   return (
     <div className="flex flex-col gap-3 px-3 pb-3">
       <ManifestReview
@@ -107,72 +239,101 @@ export function CatalogPanel({
         value={query}
         onChange={(event) => setQuery(event.target.value)}
       />
-      {packages.map((pkg) => {
-        const pack = packs.find((candidate) => candidate.package === pkg);
-        const hasSource = sources?.[pkg] !== undefined;
-        const visible = (pack?.components ?? []).filter(
-          (component) => !needle || component.name.toLowerCase().includes(needle),
-        );
-        return (
-          <section key={pkg} className="flex flex-col gap-1.5">
-            <div className="flex items-center justify-between gap-2">
-              <h3 className="truncate font-mono text-xs font-semibold" title={pkg}>
-                {pkg}
-              </h3>
-              {hasSource && online ? (
-                <Button loading={extracting === pkg} onClick={() => void run(pkg)}>
-                  {pack ? i18n.t('editor.catalog.reextract') : i18n.t('editor.catalog.extract')}
-                </Button>
-              ) : (
-                !hasSource && (
-                  <span className="text-2xs text-fg-subtle">
-                    {i18n.t('editor.catalog.noSource')}
-                  </span>
-                )
-              )}
-            </div>
-            {pack && visible.length === 0 && (
-              <p className="text-xs text-fg-subtle">{i18n.t('editor.catalog.noResults')}</p>
-            )}
-            {groupByCategory(visible).map(([category, components]) => (
-              <div key={category} className="flex flex-col">
-                <h4 className="py-1 text-2xs font-semibold tracking-wide text-fg-subtle uppercase">
-                  {category || i18n.t('editor.catalog.uncategorized')}
-                </h4>
-                <ul className="flex flex-col">
-                  {components.map((component) => (
-                    <li
-                      key={component.name}
-                      className="flex items-center rounded-sm [contain-intrinsic-size:auto_28px] [content-visibility:auto] hover:bg-hover"
-                    >
-                      <button
-                        type="button"
-                        disabled={!pack || !onAdd}
-                        draggable={Boolean(pack && onAdd)}
-                        onDragStart={(event) => {
-                          const item = { package: pkg, component: component.name };
-                          event.dataTransfer.effectAllowed = 'copy';
-                          event.dataTransfer.setData('text/plain', component.name);
-                          startDrag(item);
-                        }}
-                        onDragEnd={endDrag}
-                        aria-label={i18n.t('editor.catalog.add', { name: component.name })}
-                        onClick={() => onAdd?.({ package: pkg, component: component.name })}
-                        className="flex min-w-0 flex-1 items-center justify-between gap-2 px-1.5 py-1 text-left text-sm disabled:cursor-default"
-                      >
-                        <span className="truncate">{component.name}</span>
-                        <Badge>
-                          {i18n.t('editor.catalog.props', { count: component.props.length })}
-                        </Badge>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
+      {packs.length > 0 && (
+        <div className="flex">
+          <Segmented<CatalogView>
+            label={i18n.t('editor.catalog.viewLabel')}
+            value={view}
+            onValueChange={setView}
+            options={[
+              { value: 'library', label: i18n.t('editor.catalog.byLibrary') },
+              { value: 'category', label: i18n.t('editor.catalog.byCategory') },
+            ]}
+          />
+        </div>
+      )}
+      {view === 'category' &&
+        (byCategory.size === 0 ? (
+          <p className="text-xs text-fg-subtle">{i18n.t('editor.catalog.noResults')}</p>
+        ) : (
+          [...byCategory.entries()]
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([label, groups]) => (
+              <section key={label} className="flex flex-col">
+                {heading(label)}
+                {groups.map(({ pack, components }) => (
+                  <div key={pack.package}>{rows(pack, components)}</div>
+                ))}
+              </section>
+            ))
+        ))}
+      {view === 'library' &&
+        packages.map((pkg) => {
+          const pack = packs.find((candidate) => candidate.package === pkg);
+          const hasSource = sources?.[pkg] !== undefined;
+          const visible = shown(pack);
+          const used = libraries?.find((library) => library.package === pkg)?.version;
+          const mismatch = pack && used !== undefined && used !== pack.packageVersion;
+          return (
+            <section key={pkg} className="flex flex-col gap-1">
+              <div className="flex min-h-7 items-center gap-1.5">
+                <h3 className="min-w-0 truncate font-mono text-xs font-semibold" title={pkg}>
+                  {pkg}
+                </h3>
+                {pack && (
+                  <Badge tone={mismatch ? 'warning' : 'neutral'} className="font-mono">
+                    {mismatch && <AlertTriangle size={10} aria-hidden />}
+                    {pack.packageVersion}
+                  </Badge>
+                )}
+                {pack && hasSource && online && (
+                  <IconButton
+                    className="ml-auto"
+                    label={i18n.t('editor.catalog.reextract')}
+                    icon={
+                      <RefreshCw
+                        size={13}
+                        className={
+                          extracting === pkg ? 'animate-spin motion-reduce:animate-none' : undefined
+                        }
+                      />
+                    }
+                    disabled={extracting === pkg}
+                    onClick={() => void run(pkg)}
+                  />
+                )}
               </div>
-            ))}
-          </section>
-        );
-      })}
+              {mismatch && (
+                <p className="text-2xs text-warning-fg">
+                  {i18n.t('editor.catalog.versionMismatch', {
+                    version: used,
+                    catalog: pack.packageVersion,
+                  })}
+                </p>
+              )}
+              {!pack && hasSource && online && !loading && (
+                <Button loading={extracting === pkg} onClick={() => void run(pkg)}>
+                  {i18n.t('editor.catalog.extract')}
+                </Button>
+              )}
+              {!hasSource && (
+                <p className="text-2xs text-fg-subtle">{i18n.t('editor.catalog.noSource')}</p>
+              )}
+              {pack && visible.length === 0 && (
+                <p className="text-xs text-fg-subtle">{i18n.t('editor.catalog.noResults')}</p>
+              )}
+              {pack &&
+                groupByCategory(visible).map(([category, components]) => (
+                  <div key={category} className="flex flex-col">
+                    {heading(
+                      categoryLabel(pack, category) || i18n.t('editor.catalog.uncategorized'),
+                    )}
+                    {rows(pack, components)}
+                  </div>
+                ))}
+            </section>
+          );
+        })}
     </div>
   );
 }

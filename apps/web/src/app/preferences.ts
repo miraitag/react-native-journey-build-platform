@@ -25,6 +25,9 @@ interface PreferencesState {
   locale: Locale;
   autosaveDraft: boolean;
   autosaveFile: boolean;
+  /** The flow layer on the canvas: navigations drawn prominently, with their triggers. */
+  showFlow: boolean;
+  setShowFlow: (on: boolean) => void;
   setTheme: (theme: ThemePreference) => void;
   setLocale: (locale: Locale) => void;
   setAutosave: (kind: 'draft' | 'file', enabled: boolean) => void;
@@ -40,6 +43,11 @@ export const usePreferences = create<PreferencesState>((set, get) => ({
   locale: storedLocale(),
   autosaveDraft: storedFlag('rnjb.autosaveDraft'),
   autosaveFile: storedFlag('rnjb.autosaveFile'),
+  showFlow: localStorage.getItem('rnjb.showFlow') === 'true',
+  setShowFlow: (on) => {
+    localStorage.setItem('rnjb.showFlow', String(on));
+    set({ showFlow: on });
+  },
   setTheme: (theme) => {
     localStorage.setItem('rnjb.theme', theme);
     set({ theme, resolvedTheme: resolve(theme) });

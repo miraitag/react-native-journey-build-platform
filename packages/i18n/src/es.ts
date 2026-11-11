@@ -7,6 +7,8 @@ export const es = {
     loading: 'Cargando…',
   },
   tabs: {
+    help: 'Ayuda',
+    search: 'Buscar o ejecutar…',
     label: 'Pestañas abiertas',
     home: 'Inicio',
     template: 'Plantilla',
@@ -25,6 +27,7 @@ export const es = {
     actions: {
       create: 'Crear journey',
       openFile: 'Abrir archivo',
+      openFolder: 'Abrir carpeta',
       chooseWorkspace: 'Elegir espacio de trabajo',
       refresh: 'Actualizar índice',
       settings: 'Ajustes',
@@ -62,10 +65,13 @@ export const es = {
       discard: 'Descartar',
       discarded: 'Borrador de «{name}» descartado',
     },
+    folder: {
+      title: '{name}: {count} archivos .rnjb',
+    },
     empty: {
       noServiceTitle: 'El servicio local no está activo',
       noServiceBody:
-        'Sin él no se puede leer el espacio de trabajo. Inícialo con «pnpm dev» desde la raíz del repositorio, o abre un archivo .rnjb suelto.',
+        'Sin él no se puede leer el espacio de trabajo. Inícialo con «pnpm dev» desde la raíz del repositorio, o abre un archivo .rnjb suelto o, en Chrome y Edge, la carpeta del espacio de trabajo.',
       noWorkspaceTitle: 'Elige un espacio de trabajo',
       noWorkspaceBody:
         'Es la carpeta donde viven tus journeys, plantillas y packs. Se puede versionar en git si tu equipo lo decide.',
@@ -167,6 +173,12 @@ export const es = {
       trash: 'Papelera',
     },
     catalog: {
+      viewLabel: 'Agrupar el catálogo',
+      byLibrary: 'Librería',
+      byCategory: 'Categoría',
+      versionMismatch: 'El documento usa la versión {version}; el catálogo, la {catalog}.',
+      variants: 'Variantes de {name}',
+      addVariant: 'Añadir {name} ({variant}) a la pantalla',
       reviewTitle: 'Cambios en {package}',
       reviewBody:
         'La nueva extracción cambia el manifiesto. Lo curado por el equipo se conserva. Nada se guarda hasta que aceptes.',
@@ -195,6 +207,9 @@ export const es = {
       copied: 'Nodos copiados: {count}',
     },
     blocks: {
+      selected: '{count} nodos listos para guardar. Mayús+clic agrega o quita nodos.',
+      rootOnly:
+        'Seleccionaste la raíz de la pantalla, que no se guarda como bloque. Selecciona nodos dentro de ella en Capas o en el lienzo.',
       name: 'Nombre del bloque',
       save: 'Guardar como bloque',
       saved: 'Bloque «{name}» guardado',
@@ -215,6 +230,13 @@ export const es = {
       code: 'Bloque de código',
     },
     screens: {
+      flow: 'Flujo de pantallas',
+      via: 'desde {trigger}',
+      reference: 'Otra navegación lleva a «{screen}» (aparece arriba en el árbol)',
+      nestUnder: 'Anidar bajo «{screen}»',
+      unnest: 'Sacar de «{screen}»',
+      flowHint:
+        'Arrastra una pantalla sobre otra para anidarla; entre filas, muévete a la izquierda para sacarla de nivel.',
       initial: 'Inicial',
       nodes: '{count} nodos',
       actions: 'Acciones de {screen}',
@@ -313,8 +335,30 @@ export const es = {
       emptyTitle: 'La papelera está vacía',
       emptyBody: 'Lo que elimines se conserva aquí {hours} h antes de purgarse.',
     },
-    compare: { region: 'Comparación de dispositivos' },
+    compare: {
+      region: 'Comparación de dispositivos',
+      title: 'Comparar «{name}»',
+      add: 'Añadir dispositivo…',
+      remove: 'Quitar {name} de la comparación',
+      hint: 'Misma escala para todos · el principal se actualiza al instante',
+      close: 'Cerrar (Esc)',
+    },
+    prototype: {
+      step: 'Paso {n}',
+      fullscreen: 'Pantalla completa',
+      exitFullscreen: 'Salir de pantalla completa',
+      label: 'Controles del prototipo',
+      hintTriggers: 'Haz clic en un elemento resaltado para navegar.',
+      hintButtons: 'Esta pantalla navega sin un disparador: usa los botones para continuar.',
+      hintNone:
+        'Esta pantalla no lleva a otra. Selecciona un elemento y agrégale una navegación en Inspector › Navegación.',
+      back: 'Atrás',
+      restart: 'Reiniciar',
+      exit: 'Salir (Esc)',
+    },
     board: {
+      flow: 'Flujo',
+      flowHint: 'Mostrar el flujo: las navegaciones y desde qué elemento salen (⇧F)',
       label: 'Lienzo del journey',
       zoomIn: 'Acercar',
       zoomOut: 'Alejar',
@@ -394,9 +438,7 @@ export const es = {
       landscape: 'Horizontal',
       posture: 'Postura',
       postureClosed: 'Cerrado',
-      compare: 'Comparar con otros dispositivos',
-      compareNone: 'Comparar…',
-      compareCount: 'Comparando {count}',
+      compare: 'Comparar',
       chromeFamily: 'Estilo de sistema: {family}',
       noChromeStyle: 'Sin estilo de sistema para esta versión',
       os: 'Versión del SO',
@@ -533,6 +575,102 @@ export const es = {
     choose: 'Elegir esta carpeta',
     empty: 'Esta carpeta no tiene subcarpetas.',
   },
+  onboarding: {
+    label: 'Bienvenida',
+    skip: 'Omitir',
+    back: 'Atrás',
+    next: 'Siguiente',
+    start: 'Empezar',
+    done: 'Listo',
+    step: '{n} de {total}',
+    replay: 'Ver la bienvenida y el tour de nuevo',
+    welcome: {
+      introTitle: 'Te damos la bienvenida a RN Journey Builder',
+      introBody:
+        'Diseña journeys de React Native pantalla por pantalla, con componentes reales de tus librerías, y expórtalos como código.',
+      flowTitle: 'Pantallas y flujo',
+      flowBody:
+        'Cada pantalla vive en el lienzo. Conéctalas con navegaciones y ordénalas como un árbol en el panel Pantallas.',
+      buildTitle: 'Construye con componentes',
+      buildBody:
+        'Arrastra componentes del Catálogo a una pantalla, ordénalos en Capas y ajusta sus props en el Inspector.',
+      prototypeTitle: 'Prueba el recorrido',
+      prototypeBody:
+        'El modo Prototipo oculta el editor y te deja navegar el journey como lo haría quien usa la app.',
+      exportTitle: 'Comparte y exporta',
+      exportBody:
+        'Cuando el journey no tiene problemas, expórtalo como código listo para tu proyecto. Te mostramos dónde está todo.',
+    },
+    tour: {
+      section: {
+        app: 'Aplicación',
+        top: 'Barra del editor',
+        left: 'Panel del journey',
+        canvas: 'Lienzo',
+        right: 'Inspector',
+      },
+      tabsTitle: 'Pestañas',
+      tabsBody:
+        'Inicio y cada journey abierto en su pestaña. Ctrl/⌘ 1–9 cambia de pestaña; el punto azul indica cambios sin guardar.',
+      appTitle: 'Buscar, Ayuda y Ajustes',
+      appBody:
+        'Busca journeys o ejecuta cualquier comando (Ctrl/⌘ K), vuelve a ver este tour desde Ayuda y abre los ajustes.',
+      journeyTitle: 'Nombre del journey',
+      journeyBody:
+        'Muestra u oculta el panel izquierdo. Doble clic en el nombre para renombrar el journey.',
+      historyTitle: 'Deshacer y rehacer',
+      historyBody: 'Cada cambio es un paso que puedes deshacer (Ctrl/⌘ Z) o rehacer (Ctrl/⌘ ⇧ Z).',
+      deviceTitle: 'Dispositivo',
+      deviceBody:
+        'Elige el dispositivo, su versión de sistema, la orientación y, en plegables, la postura. «Comparar» muestra la pantalla en varios dispositivos a la vez.',
+      previewTitle: 'Estado y tema',
+      previewBody:
+        'Cambia el estado de la pantalla (cargando, error, éxito…), edítalos y alterna la vista previa entre tema claro y oscuro.',
+      healthTitle: 'Guardado y problemas',
+      healthBody:
+        'Indica si el archivo está guardado. El contador abre Problemas: errores y avisos que bloquean la exportación (Ctrl/⌘ ⇧ M).',
+      filesTitle: 'Plantilla, importar y exportar',
+      filesBody:
+        'Guarda el journey como plantilla, importa pantallas y exporta el código cuando no haya errores.',
+      catalogTitle: 'Catálogo',
+      catalogBody:
+        'Los componentes de tus librerías. Arrástralos al lienzo o usa «Añadir a la pantalla».',
+      blocksTitle: 'Bloques',
+      blocksBody:
+        'Grupos de nodos guardados para reutilizar. Selecciona nodos con Mayús+clic y guárdalos como bloque.',
+      layersTitle: 'Capas',
+      layersBody:
+        'El árbol de la pantalla seleccionada. Arrastra para reordenar o anidar; Mayús+clic selecciona varios.',
+      screensTitle: 'Pantallas',
+      screensBody:
+        'El flujo como árbol: crea, renombra, duplica y marca la pantalla inicial. Arrastra una sobre otra para anidarla.',
+      formsTitle: 'Formularios',
+      formsBody:
+        'Los formularios de la pantalla: sus campos, tipos, reglas (obligatorio, mínimo, máximo) y el modo de validación.',
+      logicTitle: 'Lógica',
+      logicBody:
+        'Los hooks de la pantalla, sus versiones, dependencias y enlaces. Se añaden desde los packs de hooks del espacio de trabajo.',
+      dataTitle: 'Datos',
+      dataBody:
+        'Los modelos de dominio del journey y los métodos del gateway (método HTTP, ruta, modelos de entrada y salida).',
+      trashTitle: 'Papelera',
+      trashBody:
+        'Lo que eliminas se conserva aquí unas horas antes de purgarse, para que puedas recuperarlo.',
+      canvasTitle: 'Lienzo',
+      canvasBody:
+        'Todas las pantallas con su vista previa real. Espacio + arrastrar para moverte; pellizca o Ctrl/⌘ + rueda para hacer zoom.',
+      modesTitle: 'Prototipo, Enfoque y Flujo',
+      modesBody:
+        'Navega el journey como usuario, enfócate en una pantalla o muestra las flechas de navegación (⇧F).',
+      zoomTitle: 'Zoom',
+      zoomBody: 'Aleja, acerca, vuelve al 100 % o encuadra todas las pantallas (⇧1).',
+      inspectorTitle: 'Inspector',
+      inspectorBody: 'Las props, estilos y navegaciones del nodo seleccionado.',
+      statusbarTitle: 'Barra de estado',
+      statusbarBody:
+        'La conexión con el servicio local, el espacio de trabajo y el estado de tus librerías.',
+    },
+  },
   palette: {
     label: 'Paleta de comandos',
     placeholder: 'Escribe un comando o busca un journey',
@@ -548,6 +686,29 @@ export const es = {
   },
   shortcuts: {
     title: 'Atajos de teclado',
+    groupGeneral: 'General',
+    groupCanvas: 'Lienzo',
+    groupSelection: 'Selección',
+    groupEdit: 'Edición',
+    groupPrototype: 'Prototipo',
+    pan: 'Mover el lienzo (mano); también con el botón central',
+    space: 'Espacio',
+    drag: 'arrastrar',
+    scroll: 'Desplazar el lienzo (⇧ para horizontal)',
+    twoFingers: 'dos dedos / rueda',
+    pinch: 'Acercar o alejar en el cursor',
+    pinchKeys: 'pellizco / ⌘ o Ctrl + rueda',
+    zoom100: 'Zoom al 100 % (también ⌘/Ctrl 0)',
+    nudgeScreen: 'Mover la pantalla seleccionada (⇧ ×10)',
+    flow: 'Mostrar u ocultar el flujo',
+    selectChildren: 'Seleccionar los hijos',
+    selectParent: 'Seleccionar el padre (también ⇧ Enter)',
+    selectNext: 'Siguiente hermano o pantalla (⇧ para el anterior)',
+    selectAll: 'Seleccionar todos los hermanos',
+    cut: 'Cortar los nodos seleccionados',
+    unwrap: 'Desenvolver el contenedor',
+    prototypeBack: 'Volver a la pantalla anterior',
+    prototypeExit: 'Salir del prototipo o de Comparar',
     palette: 'Abrir la paleta de comandos',
     help: 'Mostrar esta ayuda',
     tabs: 'Ir a la pestaña 1–9',
@@ -569,8 +730,8 @@ export const es = {
     copy: 'Copiar los nodos seleccionados',
     paste: 'Pegar dentro del nodo seleccionado',
     duplicate: 'Duplicar los nodos seleccionados',
-    wrap: 'Envolver la selección en un contenedor',
-    moveNode: 'Mover el nodo arriba o abajo',
+    wrap: 'Envolver la selección en un contenedor (también ⌘/Ctrl ⌥ G)',
+    moveNode: 'Mover el nodo arriba o abajo (también ⌘/Ctrl [ / ])',
   },
   narrow: {
     title: 'La ventana es demasiado estrecha para editar',

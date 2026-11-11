@@ -5,10 +5,6 @@ import { useService } from '../services/service-store.ts';
 import { onFocusRequest } from '../services/doc-locks.ts';
 import { Home } from '../home/Home.tsx';
 import { CreateJourneyDialog } from '../home/CreateJourneyDialog.tsx';
-import { RemoteCompareDialog } from '../home/RemoteCompareDialog.tsx';
-import { ExportDialog } from '../editor/ExportDialog.tsx';
-import { CustomDevicesDialog } from '../editor/CustomDevicesDialog.tsx';
-import { ImportDialog } from '../editor/ImportDialog.tsx';
 import { Editor } from '../editor/Editor.tsx';
 import { unresolvedLibraryCount } from '../editor/problems.ts';
 import { usePreferenceEffects, usePreferences, useT } from './preferences.ts';
@@ -24,13 +20,31 @@ import { ErrorBoundary } from './ErrorBoundary.tsx';
 import { TabBar } from './TabBar.tsx';
 import { StatusBar } from './StatusBar.tsx';
 import { useDialogs } from './dialogs-store.ts';
-import { SettingsDialog } from './SettingsDialog.tsx';
-import { ShortcutsDialog } from './ShortcutsDialog.tsx';
-import { TrashDialog } from '../home/TrashDialog.tsx';
+import { useOnboarding } from './onboarding.ts';
 
-// Opened only with Cmd/Ctrl+K; `cmdk` stays out of the initial bundle (§5.1).
-const CommandPalette = lazy(() =>
-  import('./CommandPalette.tsx').then((module) => ({ default: module.CommandPalette })),
+// Dialogs opened now and then load when opened, keeping the initial bundle under budget (§5.1).
+const ON_DEMAND = {
+  palette: lazy(() => import('./CommandPalette.tsx').then((m) => ({ default: m.CommandPalette }))),
+  settings: lazy(() => import('./SettingsDialog.tsx').then((m) => ({ default: m.SettingsDialog }))),
+  shortcuts: lazy(() =>
+    import('./ShortcutsDialog.tsx').then((m) => ({ default: m.ShortcutsDialog })),
+  ),
+  trash: lazy(() => import('../home/TrashDialog.tsx').then((m) => ({ default: m.TrashDialog }))),
+  compare: lazy(() =>
+    import('../home/RemoteCompareDialog.tsx').then((m) => ({ default: m.RemoteCompareDialog })),
+  ),
+  export: lazy(() =>
+    import('../editor/ExportDialog.tsx').then((m) => ({ default: m.ExportDialog })),
+  ),
+  devices: lazy(() =>
+    import('../editor/CustomDevicesDialog.tsx').then((m) => ({ default: m.CustomDevicesDialog })),
+  ),
+  import: lazy(() =>
+    import('../editor/ImportDialog.tsx').then((m) => ({ default: m.ImportDialog })),
+  ),
+} as const;
+const WelcomeDialog = lazy(() =>
+  import('./WelcomeDialog.tsx').then((m) => ({ default: m.WelcomeDialog })),
 );
 
 const hasFiles = (event: DragEvent) => event.dataTransfer.types.includes('Files');
@@ -48,13 +62,18 @@ type HandleItem = DataTransferItem & {
 export function App() {
   usePreferenceEffects();
   useGlobalShortcuts();
+  const welcome = useOnboarding((state) => state.welcome);
   const i18n = useT();
   const resolvedTheme = usePreferences((state) => state.resolvedTheme);
   const connect = useService((state) => state.connect);
   const settings = useService((state) => state.settings);
   const activeId = useTabs((state) => state.activeId);
   const activeTab = useTabs(selectActiveTab);
-  const paletteOpen = useDialogs((state) => state.open === 'palette');
+  const openDialog = useDialogs((state) => state.open);
+  const OnDemand =
+    openDialog && openDialog in ON_DEMAND
+      ? ON_DEMAND[openDialog as keyof typeof ON_DEMAND]
+      : undefined;
   const [dragging, setDragging] = useState(false);
 
   useEffect(() => {
@@ -178,20 +197,18 @@ export function App() {
           </div>
         )}
       </div>
-      {paletteOpen && (
+      {OnDemand && (
         <Suspense fallback={null}>
-          <CommandPalette />
+          <OnDemand />
         </Suspense>
       )}
-      <SettingsDialog />
+      {welcome && (
+        <Suspense fallback={null}>
+          <WelcomeDialog />
+        </Suspense>
+      )}
       <CreateJourneyDialog />
-      <ShortcutsDialog />
-      <TrashDialog />
-      <RemoteCompareDialog />
       <ExternalChangeDialog />
-      <ExportDialog />
-      <CustomDevicesDialog />
-      <ImportDialog />
       <TeamImportDialog />
       <Toaster theme={resolvedTheme} />
     </TooltipProvider>

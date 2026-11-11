@@ -18,7 +18,7 @@ pnpm dev
 | Web            | `http://localhost:5173` | La plataforma                                               |
 | Servicio local | `http://127.0.0.1:4317` | Lee y escribe en disco, extrae librerías, exporta e importa |
 
-Sin el servicio local la plataforma sigue funcionando con menos funciones: abre y guarda archivos sueltos, y la barra de estado indica qué no está disponible.
+Sin el servicio local la plataforma sigue funcionando con menos funciones: abre y guarda archivos sueltos, en Chrome y Edge abre también la carpeta del espacio de trabajo (**Abrir carpeta** en Inicio) y lista sus `.rnjb`, y la barra de estado indica qué no está disponible.
 
 Variables del servicio local (opcionales):
 
@@ -62,11 +62,18 @@ Si un archivo abierto cambia en disco (por ejemplo, después de un `git pull`):
 
 ## Editor
 
-- **Lienzo:** las pantallas del journey y sus conexiones. Doble clic en el nombre de una pantalla la acerca. `⇧ 1` ajusta todo a la vista y `Ctrl/⌘ +/−` cambia el zoom.
-- **Modo Prototipo:** al hacer clic en un disparador se sigue la navegación, como en la app.
+- **Lienzo:** las pantallas del journey y sus conexiones. Se navega como en Figma: dos dedos en el trackpad (o la rueda) desplazan, el pellizco o `Ctrl/⌘` + rueda acercan en el cursor, y `Espacio` + arrastrar mueve el lienzo con la mano. Funciona también encima de la pantalla en vivo. Seleccionar una pantalla no mueve la cámara; doble clic en su nombre la acerca. Las últimas pantallas seleccionadas siguen dibujadas con la vista previa real.
+- **Flujo:** el botón **Flujo** (o `⇧F`) dibuja las navegaciones como un navigation graph: flechas de acento con la punta siempre visible, en arco por encima de las pantallas que saltan y por debajo cuando vuelven. Las navegaciones que salen de un elemento llevan una etiqueta con su nombre, y ese elemento se marca con un contorno punteado en la pantalla en vivo. Las flechas de la pantalla seleccionada se ven al 100 % y el resto atenuadas. La preferencia se recuerda.
+- **Pantallas como flujo:** el panel **Pantallas** muestra el journey como un árbol: cada pantalla cuelga de la que navega a ella, empezando por la inicial. Arrastra una pantalla sobre otra para indicar que esa otra navega a ella; arriba o abajo de una fila, la deja al mismo nivel, y una línea marca dónde caerá: debajo de una fila, mueve el puntero a la izquierda para sacarla de nivel (la línea se recorre hasta el nivel de destino). La pantalla inicial es solo una; puedes moverla de lugar entre las de nivel superior, pero no anidarla. Al moverla se quita la navegación anterior si no tenía disparador; las que salen de un elemento solo se quitan en **Inspector › Navegación**. Una pantalla a la que se llega por otro camino, o un ciclo, aparece como referencia con el ícono de enlace. Sin mouse, el menú de cada pantalla tiene **Anidar bajo «…»** y **Sacar de «…»**.
+- **Bienvenida y tour:** la primera vez que abres la plataforma ves una bienvenida de cinco pasos, y al abrir un journey, un tour que señala cada zona del editor (Esc lo cierra; ← → cambian de paso). Para verlos de nuevo: menú **Ayuda** arriba a la derecha (o la paleta de comandos, Ctrl/⌘ K) › **Ver la bienvenida y el tour de nuevo**.
+- **Modo Prototipo:** como la vista de presentación de Figma, oculta el editor y muestra solo la pantalla actual sobre un fondo oscuro. Arriba ves el nombre de la pantalla y el paso, el botón de pantalla completa real y **Salir (Esc)**; abajo, una barra con lo que puedes hacer.
+  - Los elementos con navegación (disparadores) se marcan; un clic fuera de ellos los resalta.
+  - Las navegaciones sin disparador, como las del Journey básico, aparecen como botones en la barra.
+  - **Atrás** (`⌫` o `←`), **Reiniciar** y **Salir** (`Esc`).
+  - Si la pantalla no lleva a ninguna otra, la barra lo dice: selecciona un elemento y agrega una navegación en **Inspector › Navegación**.
 - **Enfoque:** muestra solo la pantalla seleccionada.
-- **Catálogo:** arrastra componentes de las librerías a la pantalla, o pulsa uno para añadirlo dentro del nodo seleccionado. Las zonas inválidas se marcan. Al volver a extraer una librería, si su manifiesto cambió, se muestran los componentes y props nuevos, eliminados o cambiados para aceptarlos o rechazarlos; nada se guarda antes de aceptar.
-- **Selección y edición rápida:** `⇧`+clic, en Capas o en el lienzo, agrega o quita nodos de la selección. Con nodos seleccionados puedes copiar (`Ctrl/⌘ C`) y pegar (`Ctrl/⌘ V`) entre pantallas, pestañas y journeys (los textos viajan con ellos), duplicar (`Ctrl/⌘ D`), envolverlos en un contenedor (`Ctrl/⌘ Alt G`, solo si son hermanos) y mover el nodo arriba o abajo (`Alt ↑/↓`).
+- **Catálogo:** arrastra componentes de las librerías a la pantalla, o pulsa uno para añadirlo dentro del nodo seleccionado. Las zonas inválidas se marcan. Se agrupa por librería o por categoría; cada librería muestra su versión y avisa si el documento usa otra. La flecha de un componente despliega sus variantes, que se añaden o arrastran igual. Al volver a extraer una librería, si su manifiesto cambió, se muestran los componentes y props nuevos, eliminados o cambiados para aceptarlos o rechazarlos; nada se guarda antes de aceptar.
+- **Selección y edición rápida:** `⇧`+clic, en Capas o en el lienzo, agrega o quita nodos de la selección. Con nodos seleccionados puedes copiar (`Ctrl/⌘ C`) y pegar (`Ctrl/⌘ V`) entre pantallas, pestañas y journeys (los textos viajan con ellos), duplicar (`Ctrl/⌘ D`), envolverlos en un contenedor (`Ctrl/⌘ G`, solo si son hermanos) y mover el nodo arriba o abajo (`Alt ↑/↓`).
 - **Bloques:** selecciona uno o varios nodos, escribe un nombre en el panel **Bloques** y pulsa **Guardar como bloque**. El bloque se guarda en `packs/blocks/workspace.json` y se puede arrastrar o añadir en cualquier journey; al insertarlo, sus nodos reciben IDs nuevos. Si guardas varios nodos, quedan dentro de un `View`.
 - **Inspector:** props, layout (flexbox) y espaciado del nodo seleccionado. Un valor puede ser literal, texto del documento, token, ícono, binding o expresión. Doble clic en un texto lo edita sobre el lienzo.
 - **Estados de pantalla:** cada pantalla tiene estados (por ejemplo `loading` o `success`) con datos de muestra.
@@ -82,7 +89,7 @@ En la barra superior del editor:
 - **Dispositivo** y **Versión del sistema.** El chrome del sistema cambia según la versión: Liquid Glass en iOS 26 o superior, el estilo anterior en iOS 18, y Material 3 o Material 3 Expressive en Android. Es una aproximación visual, marcada con la insignia «Vista aproximada».
 - **Orientación:** vertical u horizontal.
 - **Postura:** en los plegables, cerrado, desplegado o medio abierto. Desplegado se dibuja la línea del pliegue. Medio abierto (libro o mesa) la app ve dos segmentos: los elementos que cruzan el pliegue se marcan en ámbar y la insignia «Cruzan el pliegue» dice cuántos son. Los contenedores y la pantalla pueden ocupar los dos segmentos; solo se marca lo que queda partido.
-- **Comparar…:** muestra la pantalla seleccionada en hasta 2 dispositivos más. Esas vistas se actualizan 300 ms después de dejar de editar.
+- **Comparar:** revisa cómo se adapta la pantalla seleccionada a otros tamaños y plataformas. Muestra el dispositivo principal y hasta 2 más, lado a lado y a la misma escala, con su tamaño y versión de SO. Al abrirlo por primera vez propone el primer dispositivo de la otra plataforma y el más estrecho de la misma. Quita uno con su **×** o añade otro con **Añadir dispositivo…**. El principal se actualiza al instante y los demás 300 ms después de dejar de editar. `Esc` vuelve al lienzo.
 - **Dispositivos personalizados:** el ícono de teléfono crea dispositivos propios en `packs/devices/custom.json`.
 
 Al cambiar de dispositivo, si estabas editando una pantalla de cerca, el lienzo la mantiene encuadrada; si no, vuelve a mostrar todo el journey.
@@ -111,20 +118,45 @@ Puedes exportar varias veces sin hacer commit entre una y otra: los archivos que
 
 ## Atajos
 
-| Acción                                      | Atajo                     |
-| ------------------------------------------- | ------------------------- |
-| Paleta de comandos                          | `Ctrl/⌘ K`                |
-| Ayuda de atajos                             | `?`                       |
-| Ajustes                                     | `Ctrl/⌘ ,`                |
-| Guardar / Guardar como                      | `Ctrl/⌘ S` / `Ctrl/⌘ ⇧ S` |
-| Deshacer / Rehacer                          | `Ctrl/⌘ Z` / `Ctrl/⌘ ⇧ Z` |
-| Eliminar el nodo o la pantalla seleccionada | `⌫`                       |
-| Agregar o quitar un nodo de la selección    | `⇧` + clic                |
-| Copiar / Pegar nodos                        | `Ctrl/⌘ C` / `Ctrl/⌘ V`   |
-| Duplicar nodos                              | `Ctrl/⌘ D`                |
-| Envolver en un contenedor                   | `Ctrl/⌘ Alt G`            |
-| Mover el nodo arriba / abajo                | `Alt ↑` / `Alt ↓`         |
-| Cerrar la pestaña enfocada                  | `Supr`                    |
+`?` muestra todos los atajos. Siguen las convenciones de Figma, Adobe y Affinity. `Enter`, `Esc`, `Tab` y las flechas actúan cuando el foco está en el lienzo; en los paneles conservan su función habitual.
+
+| Lienzo                               | Atajo                                  |
+| ------------------------------------ | -------------------------------------- |
+| Mover el lienzo (mano)               | `Espacio` + arrastrar, o botón central |
+| Desplazar / horizontal               | Dos dedos o rueda / `⇧` + rueda        |
+| Acercar o alejar en el cursor        | Pellizco o `Ctrl/⌘` + rueda            |
+| Acercar / alejar                     | `Ctrl/⌘ +` / `Ctrl/⌘ −`                |
+| Zoom al 100 %                        | `⇧ 0` o `Ctrl/⌘ 0`                     |
+| Ajustar todo / ajustar a la pantalla | `⇧ 1` / `⇧ 2`                          |
+| Mover la pantalla seleccionada       | Flechas (`⇧` ×10)                      |
+| Mostrar u ocultar el flujo           | `⇧ F`                                  |
+
+| Selección                        | Atajo             |
+| -------------------------------- | ----------------- |
+| Agregar o quitar de la selección | `⇧` + clic        |
+| Seleccionar los hijos            | `Enter`           |
+| Seleccionar el padre             | `Esc` o `⇧ Enter` |
+| Siguiente / anterior hermano     | `Tab` / `⇧ Tab`   |
+| Siguiente pantalla (sin nodo)    | `Tab`             |
+| Seleccionar todos los hermanos   | `Ctrl/⌘ A`        |
+
+| Edición                      | Atajo                         |
+| ---------------------------- | ----------------------------- |
+| Copiar / cortar / pegar      | `Ctrl/⌘ C` / `X` / `V`        |
+| Duplicar                     | `Ctrl/⌘ D`                    |
+| Envolver en un contenedor    | `Ctrl/⌘ G` (o `Ctrl/⌘ Alt G`) |
+| Desenvolver                  | `Ctrl/⌘ ⇧ G`                  |
+| Mover el nodo arriba / abajo | `Alt ↑/↓` o `Ctrl/⌘ [ / ]`    |
+| Eliminar                     | `⌫`                           |
+
+| General                | Atajo                     |
+| ---------------------- | ------------------------- |
+| Paleta de comandos     | `Ctrl/⌘ K`                |
+| Ajustes                | `Ctrl/⌘ ,`                |
+| Guardar / Guardar como | `Ctrl/⌘ S` / `Ctrl/⌘ ⇧ S` |
+| Deshacer / Rehacer     | `Ctrl/⌘ Z` / `Ctrl/⌘ ⇧ Z` |
+| Cambiar de pestaña     | `Ctrl/⌘ 1–9`              |
+| Problemas              | `Ctrl/⌘ ⇧ M`              |
 
 ## Si algo falla
 

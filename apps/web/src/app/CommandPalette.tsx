@@ -5,6 +5,7 @@ import {
   FolderOpen,
   House,
   Keyboard,
+  Sparkles,
   LayoutTemplate,
   PanelBottom,
   Plus,
@@ -20,6 +21,7 @@ import { Kbd } from '@rnjb/ui';
 import { selectEntries, useService } from '../services/service-store.ts';
 import { usePreferences, useT } from './preferences.ts';
 import { ALT, MOD, useDialogs } from './dialogs-store.ts';
+import { useOnboarding } from './onboarding.ts';
 import { HOME_TAB, canEdit, useTabs } from './tabs-store.ts';
 import { openFromDisk, openWorkspaceEntry } from './open-document.ts';
 import { saveAs, saveFile } from './persistence.ts';
@@ -136,6 +138,9 @@ export function CommandPalette() {
           </Item>
           <Item icon={<Keyboard size={14} />} shortcut="?" onSelect={run(() => show('shortcuts'))}>
             {i18n.t('palette.shortcuts')}
+          </Item>
+          <Item icon={<Sparkles size={14} />} onSelect={run(useOnboarding.getState().replay)}>
+            {i18n.t('onboarding.replay')}
           </Item>
         </Command.Group>
         <Command.Group heading={i18n.t('palette.tabs')}>

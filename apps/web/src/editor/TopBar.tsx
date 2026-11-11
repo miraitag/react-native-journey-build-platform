@@ -1,6 +1,7 @@
 import { useState, useEffect, type ReactNode } from 'react';
 import {
   CircleAlert,
+  Columns3,
   Download,
   LayoutTemplate,
   Moon,
@@ -21,7 +22,7 @@ import { Button, IconButton, Input, Segmented, Select, WithTooltip, cx } from '@
 import { usePreferences, useT } from '../app/preferences.ts';
 import { MOD, useDialogs } from '../app/dialogs-store.ts';
 import { reportError } from '../app/report-error.ts';
-import { MAX_COMPARED, useDevices, osVersionOf } from '../services/device-store.ts';
+import { useDevices, osVersionOf } from '../services/device-store.ts';
 import { useService } from '../services/service-store.ts';
 import { saveFile } from '../app/persistence.ts';
 import {
@@ -214,8 +215,8 @@ export function TopBar({
   const setOrientation = useDevices((state) => state.setOrientation);
   const postures = useDevices((state) => state.postures);
   const selectPosture = useDevices((state) => state.selectPosture);
-  const compareIds = useDevices((state) => state.compareIds);
-  const setCompare = useDevices((state) => state.setCompare);
+  const comparing = useDevices((state) => state.comparing);
+  const setComparing = useDevices((state) => state.setComparing);
   const activeDevice = devices.find((device) => device.id === selectedDevice);
   const exportable =
     online &&
@@ -250,226 +251,221 @@ export function TopBar({
 
   return (
     <div className="flex h-10 shrink-0 items-center gap-1 border-b border-line-subtle bg-panel px-2">
-      <IconButton
-        label={i18n.t('editor.panels.left')}
-        active={leftOpen}
-        icon={<PanelLeft size={15} />}
-        onClick={onToggleLeft}
-      />
-      <JourneyName document={document} editable={editable} onRun={onRun} />
+      <div className="flex items-center gap-1" data-tour="journey">
+        <IconButton
+          label={i18n.t('editor.panels.left')}
+          active={leftOpen}
+          icon={<PanelLeft size={15} />}
+          onClick={onToggleLeft}
+        />
+        <JourneyName document={document} editable={editable} onRun={onRun} />
+      </div>
 
       <div className="mx-1 h-5 w-px bg-line-subtle" />
-      <IconButton
-        label={i18n.t('editor.topbar.undo')}
-        shortcut={`${MOD} Z`}
-        icon={<Undo2 size={15} />}
-        disabled={!editable || tab.history.past.length === 0}
-        onClick={() => useTabs.getState().undo(tab.id)}
-      />
-      <IconButton
-        label={i18n.t('editor.topbar.redo')}
-        shortcut={`${MOD} ⇧ Z`}
-        icon={<Redo2 size={15} />}
-        disabled={!editable || tab.history.future.length === 0}
-        onClick={() => useTabs.getState().redo(tab.id)}
-      />
+      <div className="flex items-center gap-1" data-tour="history">
+        <IconButton
+          label={i18n.t('editor.topbar.undo')}
+          shortcut={`${MOD} Z`}
+          icon={<Undo2 size={15} />}
+          disabled={!editable || tab.history.past.length === 0}
+          onClick={() => useTabs.getState().undo(tab.id)}
+        />
+        <IconButton
+          label={i18n.t('editor.topbar.redo')}
+          shortcut={`${MOD} ⇧ Z`}
+          icon={<Redo2 size={15} />}
+          disabled={!editable || tab.history.future.length === 0}
+          onClick={() => useTabs.getState().redo(tab.id)}
+        />
+      </div>
       <div className="mx-1 h-5 w-px bg-line-subtle" />
 
-      {devices.length === 0 ? (
-        <Blocked reason={i18n.t('editor.topbar.noDevices')}>{deviceSelect}</Blocked>
-      ) : (
-        deviceSelect
-      )}
-      <IconButton
-        label={i18n.t('devices.manage')}
-        icon={<Smartphone size={15} />}
-        disabled={!online}
-        onClick={() => useDialogs.getState().show('devices')}
-      />
-      {activeDevice && (
-        <Select
-          aria-label={i18n.t('editor.topbar.osVersion')}
-          className="w-[110px]"
-          value={osVersionOf(activeDevice, osVersions)}
-          onChange={(event) => selectOsVersion(activeDevice.id, event.target.value)}
-        >
-          {activeDevice.osVersions.map((version) => (
-            <option key={version} value={version}>
-              {i18n.t('editor.topbar.osVersionLabel', {
-                platform: activeDevice.platform === 'ios' ? 'iOS' : 'Android',
-                version,
-              })}
-            </option>
-          ))}
-        </Select>
-      )}
-      <Segmented<'portrait' | 'landscape'>
-        label={i18n.t('editor.topbar.orientation')}
-        iconOnly
-        value={orientation}
-        onValueChange={setOrientation}
-        options={[
-          {
-            value: 'portrait',
-            label: i18n.t('editor.topbar.portrait'),
-            icon: <RectangleVertical size={13} />,
-          },
-          {
-            value: 'landscape',
-            label: i18n.t('editor.topbar.landscape'),
-            icon: <RectangleHorizontal size={13} />,
-          },
-        ]}
-      />
-      {activeDevice?.postures && activeDevice.postures.length > 0 && (
-        <Select
-          aria-label={i18n.t('editor.topbar.posture')}
-          className="w-[120px]"
-          value={postures[activeDevice.id] ?? ''}
-          onChange={(event) => selectPosture(activeDevice.id, event.target.value || undefined)}
-        >
-          <option value="">{i18n.t('editor.topbar.postureClosed')}</option>
-          {activeDevice.postures.map((posture) => (
-            <option key={posture.id} value={posture.id}>
-              {posture.name}
-            </option>
-          ))}
-        </Select>
-      )}
-      {devices.length > 1 && (
-        <Select
-          aria-label={i18n.t('editor.topbar.compare')}
-          className="w-[130px]"
-          value=""
-          onChange={(event) => {
-            const id = event.target.value;
-            if (!id) return;
-            setCompare(
-              compareIds.includes(id)
-                ? compareIds.filter((other) => other !== id)
-                : [...compareIds, id].slice(-MAX_COMPARED),
-            );
-          }}
-        >
-          <option value="">
-            {compareIds.length > 0
-              ? i18n.t('editor.topbar.compareCount', { count: compareIds.length })
-              : i18n.t('editor.topbar.compareNone')}
-          </option>
-          {devices
-            .filter((device) => device.id !== selectedDevice)
-            .map((device) => (
-              <option key={device.id} value={device.id}>
-                {compareIds.includes(device.id) ? `✓ ${device.name}` : device.name}
+      <div className="flex items-center gap-1" data-tour="device">
+        {devices.length === 0 ? (
+          <Blocked reason={i18n.t('editor.topbar.noDevices')}>{deviceSelect}</Blocked>
+        ) : (
+          deviceSelect
+        )}
+        <IconButton
+          label={i18n.t('devices.manage')}
+          icon={<Smartphone size={15} />}
+          disabled={!online}
+          onClick={() => useDialogs.getState().show('devices')}
+        />
+        {activeDevice && (
+          <Select
+            aria-label={i18n.t('editor.topbar.osVersion')}
+            className="w-[110px]"
+            value={osVersionOf(activeDevice, osVersions)}
+            onChange={(event) => selectOsVersion(activeDevice.id, event.target.value)}
+          >
+            {activeDevice.osVersions.map((version) => (
+              <option key={version} value={version}>
+                {i18n.t('editor.topbar.osVersionLabel', {
+                  platform: activeDevice.platform === 'ios' ? 'iOS' : 'Android',
+                  version,
+                })}
               </option>
             ))}
-        </Select>
-      )}
-      <Select
-        aria-label={i18n.t('editor.topbar.state')}
-        className="w-[130px]"
-        disabled={!screen || screen.states.length === 0}
-        value={view.stateId ?? ''}
-        onChange={(event) => onView({ stateId: event.target.value })}
-      >
-        {!screen || screen.states.length === 0 ? (
-          <option value="">{i18n.t('editor.topbar.noStates')}</option>
-        ) : (
-          screen.states.map((state) => (
-            <option key={state.id} value={state.id}>
-              {state.name}
-            </option>
-          ))
+          </Select>
         )}
-      </Select>
-      {screen && (
-        <StatesDialog
-          screen={screen}
-          stateId={view.stateId}
-          editable={editable}
-          onRun={onRun}
-          onSelectState={(stateId) => onView({ stateId })}
+        <Segmented<'portrait' | 'landscape'>
+          label={i18n.t('editor.topbar.orientation')}
+          iconOnly
+          value={orientation}
+          onValueChange={setOrientation}
+          options={[
+            {
+              value: 'portrait',
+              label: i18n.t('editor.topbar.portrait'),
+              icon: <RectangleVertical size={13} />,
+            },
+            {
+              value: 'landscape',
+              label: i18n.t('editor.topbar.landscape'),
+              icon: <RectangleHorizontal size={13} />,
+            },
+          ]}
         />
-      )}
-      <Segmented<'light' | 'dark'>
-        label={i18n.t('editor.topbar.previewTheme')}
-        iconOnly
-        value={view.previewTheme}
-        onValueChange={(previewTheme) => onView({ previewTheme })}
-        options={[
-          { value: 'light', label: i18n.t('settings.themeLight'), icon: <Sun size={13} /> },
-          { value: 'dark', label: i18n.t('settings.themeDark'), icon: <Moon size={13} /> },
-        ]}
-      />
+        {activeDevice?.postures && activeDevice.postures.length > 0 && (
+          <Select
+            aria-label={i18n.t('editor.topbar.posture')}
+            className="w-[120px]"
+            value={postures[activeDevice.id] ?? ''}
+            onChange={(event) => selectPosture(activeDevice.id, event.target.value || undefined)}
+          >
+            <option value="">{i18n.t('editor.topbar.postureClosed')}</option>
+            {activeDevice.postures.map((posture) => (
+              <option key={posture.id} value={posture.id}>
+                {posture.name}
+              </option>
+            ))}
+          </Select>
+        )}
+        {devices.length > 1 && (
+          <Button
+            size="sm"
+            variant={comparing ? 'primary' : 'ghost'}
+            aria-pressed={comparing}
+            disabled={!screen}
+            icon={<Columns3 size={14} />}
+            onClick={() => setComparing(!comparing)}
+          >
+            {i18n.t('editor.topbar.compare')}
+          </Button>
+        )}
+      </div>
+      <div className="flex items-center gap-1" data-tour="preview">
+        <Select
+          aria-label={i18n.t('editor.topbar.state')}
+          className="w-[130px]"
+          disabled={!screen || screen.states.length === 0}
+          value={view.stateId ?? ''}
+          onChange={(event) => onView({ stateId: event.target.value })}
+        >
+          {!screen || screen.states.length === 0 ? (
+            <option value="">{i18n.t('editor.topbar.noStates')}</option>
+          ) : (
+            screen.states.map((state) => (
+              <option key={state.id} value={state.id}>
+                {state.name}
+              </option>
+            ))
+          )}
+        </Select>
+        {screen && (
+          <StatesDialog
+            screen={screen}
+            stateId={view.stateId}
+            editable={editable}
+            onRun={onRun}
+            onSelectState={(stateId) => onView({ stateId })}
+          />
+        )}
+        <Segmented<'light' | 'dark'>
+          label={i18n.t('editor.topbar.previewTheme')}
+          iconOnly
+          value={view.previewTheme}
+          onValueChange={(previewTheme) => onView({ previewTheme })}
+          options={[
+            { value: 'light', label: i18n.t('settings.themeLight'), icon: <Sun size={13} /> },
+            { value: 'dark', label: i18n.t('settings.themeDark'), icon: <Moon size={13} /> },
+          ]}
+        />
+      </div>
 
       <div className="flex-1" />
 
-      <SaveIndicator tab={tab} />
+      <div className="flex items-center gap-1" data-tour="health">
+        <SaveIndicator tab={tab} />
 
-      <button
-        type="button"
-        aria-pressed={view.problemsOpen}
-        title={`${i18n.t('editor.problems.toggle')} (${MOD} ⇧ M)`}
-        onClick={() => onView({ problemsOpen: !view.problemsOpen })}
-        className={cx(
-          'tabular inline-flex h-[var(--control-h-sm)] items-center gap-1.5 rounded-md px-2 text-xs',
-          view.problemsOpen
-            ? 'bg-accent-subtle text-accent-fg'
-            : 'text-fg-muted hover:bg-hover hover:text-fg',
-        )}
-      >
-        <CircleAlert size={13} aria-hidden className={errors > 0 ? 'text-danger' : undefined} />
-        {errors}
-        <TriangleAlert
-          size={13}
-          aria-hidden
-          className={cx('ml-1', warnings > 0 && 'text-warning-fg')}
-        />
-        {warnings}
-        <span className="sr-only">{i18n.t('editor.problems.summary', { errors, warnings })}</span>
-      </button>
-
-      {tab.kind === 'journey' && (
-        <IconButton
-          label={i18n.t('home.card.saveAsTemplate')}
-          icon={<LayoutTemplate size={15} />}
-          disabled={tab.source.type !== 'workspace'}
-          onClick={() => void saveAsTemplate(tab)}
-        />
-      )}
-
-      {online && canExport(defaultProfile) ? (
-        <Button
-          size="sm"
-          variant="ghost"
-          icon={<Download size={14} />}
-          onClick={() => useDialogs.getState().show('import')}
+        <button
+          type="button"
+          aria-pressed={view.problemsOpen}
+          title={`${i18n.t('editor.problems.toggle')} (${MOD} ⇧ M)`}
+          onClick={() => onView({ problemsOpen: !view.problemsOpen })}
+          className={cx(
+            'tabular inline-flex h-[var(--control-h-sm)] items-center gap-1.5 rounded-md px-2 text-xs',
+            view.problemsOpen
+              ? 'bg-accent-subtle text-accent-fg'
+              : 'text-fg-muted hover:bg-hover hover:text-fg',
+          )}
         >
-          {i18n.t('editor.topbar.import')}
-        </Button>
-      ) : (
-        <Blocked reason={i18n.t('editor.topbar.importBlocked')}>
-          <Button size="sm" variant="ghost" icon={<Download size={14} />} disabled>
+          <CircleAlert size={13} aria-hidden className={errors > 0 ? 'text-danger' : undefined} />
+          {errors}
+          <TriangleAlert
+            size={13}
+            aria-hidden
+            className={cx('ml-1', warnings > 0 && 'text-warning-fg')}
+          />
+          {warnings}
+          <span className="sr-only">{i18n.t('editor.problems.summary', { errors, warnings })}</span>
+        </button>
+      </div>
+
+      <div className="flex items-center gap-1" data-tour="files">
+        {tab.kind === 'journey' && (
+          <IconButton
+            label={i18n.t('home.card.saveAsTemplate')}
+            icon={<LayoutTemplate size={15} />}
+            disabled={tab.source.type !== 'workspace'}
+            onClick={() => void saveAsTemplate(tab)}
+          />
+        )}
+
+        {online && canExport(defaultProfile) ? (
+          <Button
+            size="sm"
+            variant="ghost"
+            icon={<Download size={14} />}
+            onClick={() => useDialogs.getState().show('import')}
+          >
             {i18n.t('editor.topbar.import')}
           </Button>
-        </Blocked>
-      )}
-      {exportable ? (
-        <Button
-          size="sm"
-          variant="primary"
-          icon={<Upload size={14} />}
-          onClick={() => useDialogs.getState().showExport(document)}
-        >
-          {i18n.t('editor.topbar.export')}
-        </Button>
-      ) : (
-        <Blocked reason={i18n.t('editor.topbar.exportBlocked')}>
-          <Button size="sm" variant="primary" icon={<Upload size={14} />} disabled>
+        ) : (
+          <Blocked reason={i18n.t('editor.topbar.importBlocked')}>
+            <Button size="sm" variant="ghost" icon={<Download size={14} />} disabled>
+              {i18n.t('editor.topbar.import')}
+            </Button>
+          </Blocked>
+        )}
+        {exportable ? (
+          <Button
+            size="sm"
+            variant="primary"
+            icon={<Upload size={14} />}
+            onClick={() => useDialogs.getState().showExport(document)}
+          >
             {i18n.t('editor.topbar.export')}
           </Button>
-        </Blocked>
-      )}
+        ) : (
+          <Blocked reason={i18n.t('editor.topbar.exportBlocked')}>
+            <Button size="sm" variant="primary" icon={<Upload size={14} />} disabled>
+              {i18n.t('editor.topbar.export')}
+            </Button>
+          </Blocked>
+        )}
+      </div>
       <IconButton
         label={i18n.t('editor.inspector.label')}
         active={rightOpen}

@@ -2,6 +2,8 @@ import { toast } from 'sonner';
 import {
   duplicateNodes,
   extractFragment,
+  moveScreenOnBoard,
+  unwrapNode,
   withStrings,
   type Command,
   type NodeFragment,
@@ -12,7 +14,8 @@ import { reportError } from '../app/report-error.ts';
 import { canEdit, useTabs, type DocumentTab } from '../app/tabs-store.ts';
 import { useLibraries } from '../services/library-store.ts';
 import { moveNodeCommand, pasteCommand, wrapCommand } from './insert-component.ts';
-import { selectionOf } from './selection.ts';
+import { trashNode } from '../app/trash.ts';
+import { navigateSelection, selectionOf, type SelectionMove } from './selection.ts';
 
 export { selectionOf };
 
@@ -28,6 +31,13 @@ function editing(tabId: string): { tab: DocumentTab; screen: Screen } | undefine
   const tab = useTabs.getState().tabs.find((candidate) => candidate.id === tabId);
   const screen = tab?.document?.screens.find((item) => item.id === tab.view.selectedScreenId);
   return tab && screen && canEdit(tab) ? { tab, screen } : undefined;
+}
+
+/** Like `editing`, but read-only tabs can still move their selection. */
+function viewing(tabId: string): { tab: DocumentTab; screen: Screen } | undefined {
+  const tab = useTabs.getState().tabs.find((candidate) => candidate.id === tabId);
+  const screen = tab?.document?.screens.find((item) => item.id === tab.view.selectedScreenId);
+  return tab && screen ? { tab, screen } : undefined;
 }
 
 const select = (tabId: string, ids: readonly string[]) =>
@@ -115,5 +125,59 @@ export function moveSelection(tabId: string, delta: -1 | 1): boolean {
     delta < 0 ? 'before' : 'after',
   );
   if (command) apply(tabId, command);
+  return true;
+}
+
+/** Esc / ⇧Enter, Enter, Tab / ⇧Tab and ⌘A: moves the selection through the tree. */
+export function navigate(tabId: string, move: SelectionMove): boolean {
+  const current = viewing(tabId);
+  const next = current && navigateSelection(current.screen, current.tab.view, move);
+  if (!next) return false;
+  useTabs.getState().updateView(tabId, next);
+  return true;
+}
+
+/** Tab / ⇧Tab with no node selected: the next or previous screen of the journey. */
+export function selectScreenBy(tabId: string, delta: -1 | 1): boolean {
+  const tab = useTabs.getState().tabs.find((candidate) => candidate.id === tabId);
+  const screens = tab?.document?.screens ?? [];
+  if (!tab || screens.length < 2) return false;
+  const index = screens.findIndex((screen) => screen.id === tab.view.selectedScreenId);
+  const screen = screens[(index + delta + screens.length) % screens.length];
+  useTabs.getState().updateView(tabId, {
+    selectedScreenId: screen?.id,
+    selectedNodeId: undefined,
+    extraNodeIds: [],
+    stateId: screen?.states[0]?.id,
+  });
+  return true;
+}
+
+export function cutSelection(tabId: string): boolean {
+  const current = editing(tabId);
+  const fragment = current && extractFragment(current.screen, selectionOf(current.tab.view));
+  if (!current || !fragment || !copySelection(tabId)) return false;
+  for (const id of fragment.rootIds) void trashNode(tabId, current.screen.id, id);
+  return true;
+}
+
+/** ⌘⇧G: the selected container is replaced by its children, which stay selected. */
+export function unwrapSelection(tabId: string): boolean {
+  const current = editing(tabId);
+  const nodeId = current?.tab.view.selectedNodeId;
+  if (!current || !nodeId || nodeId === current.screen.rootId) return false;
+  apply(
+    tabId,
+    unwrapNode(current.screen.id, nodeId, (children) => select(tabId, children)),
+  );
+  return true;
+}
+
+/** Arrow keys with a screen (and no node) selected move it on the canvas. */
+export function nudgeScreen(tabId: string, dx: number, dy: number): boolean {
+  const current = editing(tabId);
+  if (!current || current.tab.view.selectedNodeId) return false;
+  const position = current.tab.document?.board.positions[current.screen.id] ?? { x: 0, y: 0 };
+  apply(tabId, moveScreenOnBoard(current.screen.id, { x: position.x + dx, y: position.y + dy }));
   return true;
 }

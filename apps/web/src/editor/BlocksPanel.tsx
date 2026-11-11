@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { extractFragment, withStrings, type RnjbDocument, type Screen } from '@rnjb/core';
-import { Button, EmptyState, Input } from '@rnjb/ui';
+import { Button, EmptyState, Input, cx } from '@rnjb/ui';
 import { useT } from '../app/preferences.ts';
 import { reportError } from '../app/report-error.ts';
 import { useBlocks } from '../services/blocks-store.ts';
@@ -94,9 +94,14 @@ export function BlocksPanel({
         <Button type="submit" size="sm" disabled={!canSave}>
           {i18n.t('editor.blocks.save')}
         </Button>
-        {!fragment && (
-          <p className="text-2xs text-fg-muted">{i18n.t('editor.blocks.selectFirst')}</p>
-        )}
+        {/* Say what the selection gives, so a click on the screen's root never looks ignored. */}
+        <p className={cx('text-2xs', fragment ? 'text-accent-fg' : 'text-fg-muted')}>
+          {fragment
+            ? i18n.t('editor.blocks.selected', {
+                count: String(Object.keys(fragment.nodes).length),
+              })
+            : i18n.t(selection.length > 0 ? 'editor.blocks.rootOnly' : 'editor.blocks.selectFirst')}
+        </p>
       </form>
       {blocks.length === 0 ? (
         <EmptyState title={i18n.t('editor.blocks.emptyTitle')}>

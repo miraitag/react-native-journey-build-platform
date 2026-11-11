@@ -5,6 +5,7 @@ import {
   duplicateNodes,
   extractFragment,
   insertFragment,
+  unwrapNode,
   withStrings,
   wrapNodes,
 } from './fragment.ts';
@@ -38,6 +39,7 @@ const document = {
   screens: [screen],
   meta: {},
   strings: { 'home.title': 'Hola' },
+  connections: [],
 } as unknown as RnjbDocument;
 
 let n = 0;
@@ -107,5 +109,16 @@ describe('fragment commands', () => {
       context,
     ).document;
     expect(result.strings).toEqual({ 'home.title': 'Hola', 'login.title': 'Entrar' });
+  });
+
+  it('unwraps a container back into its parent, and refuses the root', () => {
+    let children: string[] = [];
+    const next = run(unwrapNode('s', 'a', (ids) => (children = ids)));
+    expect(next.nodes.root?.children).toEqual(['a1', 'b', 'c']);
+    expect(next.nodes.a).toBeUndefined();
+    expect(children).toEqual(['a1']);
+    expect(() => run(unwrapNode('s', 'root'))).toThrow(
+      expect.objectContaining({ code: 'RNJB-604' }),
+    );
   });
 });

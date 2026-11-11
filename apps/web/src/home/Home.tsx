@@ -5,6 +5,7 @@ import {
   FileClock,
   FileWarning,
   FolderOpen,
+  FolderTree,
   GitCompare,
   LayoutTemplate,
   MoreHorizontal,
@@ -41,8 +42,10 @@ import {
   openFromDisk,
   openRemoteEntry,
   openWorkspaceEntry,
+  openFromHandle,
   reportError,
 } from '../app/open-document.ts';
+import { canPickFolder, pickRnjbFolder, type PickedFolder } from '../services/file-picker.ts';
 import { discardDraft, openDraft } from '../app/persistence.ts';
 import { replaceFromOrigin } from '../app/remote-update.ts';
 import { useTabs } from '../app/tabs-store.ts';
@@ -76,6 +79,7 @@ export function Home() {
   const refreshIndex = useService((state) => state.refreshIndex);
   const show = useDialogs((state) => state.show);
   const [query, setQuery] = useState('');
+  const [folder, setFolder] = useState<PickedFolder>();
   const [origin, setOrigin] = useState<OriginFilter>('all');
   const [filters, setFilters] = useState<EntryFilters>(NO_FILTERS);
   const deferredQuery = useDeferredValue(query.trim());
@@ -152,10 +156,41 @@ export function Home() {
                 >
                   {i18n.t('home.actions.openFile')}
                 </Button>
+                {canPickFolder() && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    icon={<FolderTree size={13} />}
+                    onClick={() =>
+                      void pickRnjbFolder().then(setFolder, (error: unknown) =>
+                        reportError(error, i18n),
+                      )
+                    }
+                  >
+                    {i18n.t('home.actions.openFolder')}
+                  </Button>
+                )}
               </>
             }
           >
             {i18n.t('home.empty.noServiceBody')}
+            {folder && (
+              <span className="mt-4 flex flex-col gap-1 text-left">
+                <span className="text-xs font-semibold text-fg">
+                  {i18n.t('home.folder.title', { name: folder.name, count: folder.files.length })}
+                </span>
+                {folder.files.map((file) => (
+                  <button
+                    key={file.path}
+                    type="button"
+                    onClick={() => void openFromHandle(file.handle, i18n)}
+                    className="truncate rounded-sm px-2 py-1 text-left font-mono text-xs text-fg hover:bg-hover"
+                  >
+                    {file.path}
+                  </button>
+                ))}
+              </span>
+            )}
           </EmptyState>
         ) : !hasWorkspace ? (
           <EmptyState

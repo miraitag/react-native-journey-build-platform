@@ -145,3 +145,16 @@ export async function openFromDisk(i18n: Translator): Promise<void> {
     reportError(error, i18n);
   }
 }
+
+/** Opens a file of a folder picked without the local service (§6.7), like a standalone file. */
+export async function openFromHandle(
+  handle: FileSystemFileHandle,
+  i18n: Translator,
+): Promise<void> {
+  try {
+    const file = await handle.getFile();
+    await openText(await file.text(), { type: 'file', name: file.name }, file.name, i18n, handle);
+  } catch (error) {
+    reportError(error, i18n);
+  }
+}
